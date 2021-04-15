@@ -1,4 +1,4 @@
-# LoadShedderInterface
+# Load Shedder Interface
 
 ## Requirements
 - Use Ubuntu 18.04 (other linux distros could work, but the requirements scripts may not work)
