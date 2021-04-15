@@ -1,0 +1,22 @@
+- hosts : all
+  gather_facts: true
+  vars:
+    src_directory: "/tmp/src/"
+  become_user: root
+  tasks:
+    - name: Update apt-cache
+      apt: update_cache=yes
+      tags: packages
+      become: yes
+
+    - name: Install Capn'Proto 
+      apt: 
+        pkg: ['python3', 'python3-pip', 'capnproto', 'build-essential', 'git', 'make', 'cmake', 'autoconf', 'libcapnp-dev', 'python3-pip']
+      become: yes
+
+    - name: Install python3 prestuff
+      pip:
+        executable: pip3
+        name:
+          - pycapnp 
+          - cython
