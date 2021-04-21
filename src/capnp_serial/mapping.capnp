@@ -70,3 +70,12 @@ struct Feature{
 struct Features{
   feats @0: List(Feature);
 }
+
+struct LabeledData{
+  label @0 :Bool;
+  feats @1 :Features;
+}
+
+struct Training{
+  data @0 :List(LabeledData);
+}
