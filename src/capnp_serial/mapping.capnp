@@ -1,12 +1,12 @@
 @0xa884193775a6279a;
 
-struct SerializedMat{
+struct FeatSerializedMat{
   matBinary @0 :Data;
   extension @1 :Text;
 }
 
 struct Foreground{
-  mask @0 :SerializedMat;
+  mask @0 :FeatSerializedMat;
 }
 
 struct Point{
@@ -23,12 +23,16 @@ struct Range{
   upperLim @1 :UInt64; 
 }
 
+struct Count{
+ count @0 :List(UInt64);
+}
+
 struct Histogram{
-  counts @0 :List(UInt64);
+  counts @0 :List(Count);
   histSize @1 :List(UInt8);
   ranges @2 :List(Range);
   channels @3 :List(UInt8);
-  dimensions @4 :UInt8;
+  dimensions @4 :List(UInt8);
 }
 
 struct FullHistogram{
@@ -40,7 +44,7 @@ struct BlobHistogram{
   contour @1 :Contour;
 }
 
-struct Detection{
+struct FeatDetection{
   label @0 :Text;
   confidence @1 :Float64;
   left @2 :UInt64;
@@ -63,7 +67,7 @@ struct Feature{
     contours @2 :List(Contour);
     wholeHisto @3 :FullHistogram;
     blobHisto @4 :List(BlobHistogram);
-    detections @5 :List(Detection);
+    detections @5 :List(FeatDetection);
   }
 }
 
@@ -72,10 +76,16 @@ struct Features{
 }
 
 struct LabeledData{
-  label @0 :Bool;
-  feats @1 :Features;
+  frameIndex @0 :Text;
+  label @1 :Bool;
+  feats @2 :Features;
+}
+
+struct VideoFeatures {
+  videoDescription @0 :Text;
+  data @1 :List(LabeledData);
 }
 
 struct Training{
-  data @0 :List(LabeledData);
+  data @0 :List(VideoFeatures);
 }
