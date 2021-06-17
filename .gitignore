@@ -34,3 +34,17 @@
 build
 *.pyc
 *.swp
+
+# IDE 
+__pycache__
+
+
+# data
+*.csv
+*.bin
+*.mp4
+
+
+
+# figures
+*.png
