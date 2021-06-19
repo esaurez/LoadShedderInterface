@@ -11,13 +11,13 @@
 
 class CommAgent {
 public:
-    CommAgent(const std::string &serverUrl);
+    CommAgent(const std::string &serverUrl, std::shared_ptr<zmq::context_t> ctxPtr=nullptr);
     ~CommAgent();
     float getUtilityThreshold(float dropRatio);
     float getUtilityValue(Features::Builder &utilityRequest);
 private:
-    zmq::context_t context;
-    zmq::socket_t sock;
+    std::shared_ptr<zmq::context_t> ctx;
+    std::unique_ptr<zmq::socket_t> sock;
 };
 
 

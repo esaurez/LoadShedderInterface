@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(ipvs_epl_interface)
 
 ## use this to globally use C++11 with in our project
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 ## load in pkg-config support
 find_package(PkgConfig)
