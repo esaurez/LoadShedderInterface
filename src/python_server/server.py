@@ -21,11 +21,11 @@ class InterfaceReqHandler:
         while True:
             #  Wait for next request from client
             message = self.socket.recv()
-            reply = self.handle_msg(message)
+            util_msg  = messages_capnp.UtilityMessage.from_bytes(message)
+            reply = self.handle_msg(util_msg)
             self.socket.send(reply.to_bytes())
 
-    def handle_msg(self, message):
-        util_msg  = messages_capnp.UtilityMessage.from_bytes(message)
+    def handle_msg(self, util_msg):
         if util_msg.messageType == "utilityThresholdRequest":
             util_threshold_req = util_msg.utilityThresholdRequest
             reply = self.handle_util_threshold_req(util_threshold_req)
