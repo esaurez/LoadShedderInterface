@@ -82,3 +82,6 @@ def load_training_data(path, fullHistogramBinSize=None):
             observations.extend(map_training(trainingData, fullHistogramBinSize))
 
     return observations
+
+
+def init(properties_file):

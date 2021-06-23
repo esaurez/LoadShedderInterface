@@ -3,7 +3,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 
-occurrenceDictionaries = dict()
+occurrencesDictionary = dict()
 utility_threshold_array = []
 featureCorrespondingBinSize = []
 
@@ -63,42 +63,42 @@ return a dictionary that contains the occurrences of each distinct observation a
 
 
 def get_occurrence_count(observations):
-    occurrenceDictionaries = dict()
+    occurrencesDictionary = dict()
     for observation in observations:
         featureList = observation[:-1]
         label = observation[-1]
 
         key = get_observation_key(featureList)
-        if key in occurrenceDictionaries:
-            occurrenceDictionaries[key][0] += 1
-            occurrenceDictionaries[key][1] += label
+        if key in occurrencesDictionary:
+            occurrencesDictionary[key][0] += 1
+            occurrencesDictionary[key][1] += label
         else:
-            occurrenceDictionaries[key] = [1, label, 0.0]
+            occurrencesDictionary[key] = [1, label, 0.0]
 
-    return occurrenceDictionaries
+    return occurrencesDictionary
 
 
 """
-build the utilites by dividing the number of complex event by the number of occurrence in occurrenceDictionaries
+build the utilites by dividing the number of complex event by the number of occurrence in occurrencesDictionary
 """
 
 
-def build_utility_array(occurrenceDictionaries):
-    for key, value in occurrenceDictionaries.items():
+def build_utility_array(occurrencesDictionary):
+    for key, value in occurrencesDictionary.items():
         occ = value[0]
         sum_labels = value[1]
         ut = sum_labels / occ
-        occurrenceDictionaries[key][2] = ut
+        occurrencesDictionary[key][2] = ut
 
 
-def find_min_and_max_utilities(occurrenceDictionaries):
+def find_min_and_max_utilities(occurrencesDictionary):
     # Minimum and Maximum values' (occurrences & utilities) Calculation
     min_occ = 1000000
     max_occ = 0
     min_ut = 1000000
     max_ut = 0.0
 
-    for key, value in occurrenceDictionaries.items():
+    for key, value in occurrencesDictionary.items():
         occ = value[0]
         ut = value[2]
 
@@ -115,10 +115,10 @@ def find_min_and_max_utilities(occurrenceDictionaries):
     return min_occ, max_occ, min_ut, max_ut
 
 
-def get_percentile_utility_occurrences(occurrenceDictionaries):
+def get_percentile_utility_occurrences(occurrencesDictionary):
     utility_list = []
     percentile_list = []
-    for key, value in occurrenceDictionaries.items():
+    for key, value in occurrencesDictionary.items():
         ut = value[2]
         utility_list.append(ut)
 
@@ -127,10 +127,10 @@ def get_percentile_utility_occurrences(occurrenceDictionaries):
     return percentile_list
 
 
-def normalize_utilities(occurrenceDictionaries, minUtility, percentileList, percent, utilityNormalizationUpperBound):
+def normalize_utilities(occurrencesDictionary, minUtility, percentileList, percent, utilityNormalizationUpperBound):
     maxUtility = percentileList[percent]
 
-    for key, value in occurrenceDictionaries.items():
+    for key, value in occurrencesDictionary.items():
         ut = value[2]
         if ((maxUtility - minUtility) == 0):
             ut_normalized = 0
@@ -138,10 +138,10 @@ def normalize_utilities(occurrenceDictionaries, minUtility, percentileList, perc
             ut_normalized = int(utilityNormalizationUpperBound * (ut - minUtility) / (maxUtility - minUtility))
             if ut_normalized > utilityNormalizationUpperBound:
                 ut_normalized = utilityNormalizationUpperBound
-        occurrenceDictionaries[key][2] = ut_normalized
+        occurrencesDictionary[key][2] = ut_normalized
 
 
-def compute_utility_frequncy_and_threshold(occurrenceDictionaries, utilityNormalizationUpperBound):
+def compute_utility_frequncy_and_threshold(occurrencesDictionary, utilityNormalizationUpperBound):
     """
     array to hold the utility thresholds--
     index represents the utility (ut), value represents the frequency/occurrence of the ut
@@ -151,7 +151,7 @@ def compute_utility_frequncy_and_threshold(occurrenceDictionaries, utilityNormal
 
     total_number_of_occurrences = 0
 
-    for key, value in occurrenceDictionaries.items():
+    for key, value in occurrencesDictionary.items():
         occ = value[0]
         ut = value[2]
         utility_frequency_in_occ_dict[ut] += 1
@@ -164,37 +164,38 @@ def compute_utility_frequncy_and_threshold(occurrenceDictionaries, utilityNormal
     return utility_threshold_array, utility_frequency_in_occ_dict
 
 
-def save_utilities(path, occurrenceDictionaries):
+def save_utilities(path, occurrencesDictionary):
     # create the model directory if not exists
     Path(path).mkdir(parents=True, exist_ok=True)
 
     with open(path + "/utilities.csv", 'w') as f:
-        for key, value in occurrenceDictionaries.items():
+        for key, value in occurrencesDictionary.items():
             f.write('%s, %s\n' % (key, value[2]))
 
 
 def load_utilities(path):
-    occurrenceDictionaries = dict()
+    occurrencesDictionary = dict()
     with open(path + "/utilities.csv", 'r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for line in csv_reader:
-            occurrenceDictionaries[line[0]] = line[1]
+            occurrencesDictionary[line[0]] = int(line[1])
 
+    return  occurrencesDictionary
 
-def get_frequency_of_occurrences(occurrenceDictionaries, max_occ):
+def get_frequency_of_occurrences(occurrencesDictionary, max_occ):
     occurrences = [0] * (max_occ + 1)
-    for value in occurrenceDictionaries.values():
+    for value in occurrencesDictionary.values():
         occ = value[0]
         occurrences[occ] += 1
 
     return occurrences
 
 
-def plot_occurrences(path, occurrenceDictionaries, max_occ):
+def plot_occurrences(path, occurrencesDictionary, max_occ):
     # create the model directory if not exists
     Path(path).mkdir(parents=True, exist_ok=True)
 
-    occurrences = get_frequency_of_occurrences(occurrenceDictionaries, max_occ)
+    occurrences = get_frequency_of_occurrences(occurrencesDictionary, max_occ)
 
     su = len(occurrences)
     cdf = np.cumsum(occurrences)
@@ -225,7 +226,7 @@ def save_utility_threshold(path, utility_threshold_array):
     # I changed here, was giving array index out of bound so I changed it to -1
     with open(path + "/utility_threshold.csv", 'w') as f:
         for i in range(0, len(utility_threshold_array)):
-            f.write('%d, %d\n' % (i, utility_threshold_array[i]))
+            f.write('%d, %f\n' % (i, utility_threshold_array[i]))
 
 
 def load_utility_threshold(path):
@@ -233,7 +234,7 @@ def load_utility_threshold(path):
     with open(path + "/utility_threshold.csv", 'r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for line in csv_reader:
-            utility_threshold_array.append(line[1])
+            utility_threshold_array.append(float(line[1]))
 
     return utility_threshold_array
 
@@ -269,26 +270,26 @@ featureCorrespondingBinSize: list. bin size for each feature in observations
 
 def train(observations, featureCorrespondingBinSize, generatedModelPath, utilityNormalizationUpperBound):
     discretize_observations(observations, featureCorrespondingBinSize)
-    occurrenceDictionaries = get_occurrence_count(observations)
-    build_utility_array(occurrenceDictionaries)
-    min_occ, max_occ, min_ut, max_ut = find_min_and_max_utilities(occurrenceDictionaries)
-    percentile_list = get_percentile_utility_occurrences(occurrenceDictionaries)
-    normalize_utilities(occurrenceDictionaries, min_ut, percentile_list, 95, utilityNormalizationUpperBound)
+    occurrencesDictionary = get_occurrence_count(observations)
+    build_utility_array(occurrencesDictionary)
+    min_occ, max_occ, min_ut, max_ut = find_min_and_max_utilities(occurrencesDictionary)
+    percentile_list = get_percentile_utility_occurrences(occurrencesDictionary)
+    normalize_utilities(occurrencesDictionary, min_ut, percentile_list, 95, utilityNormalizationUpperBound)
 
     # save utilities
-    save_utilities(generatedModelPath, occurrenceDictionaries)
+    save_utilities(generatedModelPath, occurrencesDictionary)
 
     # for debugging
-    plot_occurrences(generatedModelPath, occurrenceDictionaries, max_occ)
+    plot_occurrences(generatedModelPath, occurrencesDictionary, max_occ)
 
     # threshold utilities
     utility_threshold_array, utility_frequency_in_occ_dict = compute_utility_frequncy_and_threshold(
-        occurrenceDictionaries, utilityNormalizationUpperBound)
+        occurrencesDictionary, utilityNormalizationUpperBound)
     save_utility_threshold(generatedModelPath, utility_threshold_array)
     # for debugging
     plot_utility_threshold(generatedModelPath, utility_threshold_array, utility_frequency_in_occ_dict)
 
-    # print(occurrenceDictionaries)
+    # print(occurrencesDictionary)
 
 
 def get_utility_threshold(dropRatio):
@@ -300,21 +301,21 @@ def get_utility_threshold(dropRatio):
 
 
 def get_utility(featureList):
-    featureList = discretize_observation(featureList, featureCorrespondBinSize)
+    featureList = discretize_observation(featureList, featureCorrespondingBinSize)
 
     # key for features (except label)
     key = get_observation_key(featureList)
 
     # get utility, if not found, return the max utility
-    utility = occurrenceDictionaries.get(key, len(utility_threshold_array))
+    utility = occurrencesDictionary.get(key, len(utility_threshold_array))
     return utility
 
 
 def init_shedding(modelPath, featureBinSize):
     global featureCorrespondingBinSize
     featureCorrespondingBinSize = featureBinSize
-    global occurrenceDictionaries
-    occurrenceDictionaries = load_utilities(modelPath)
+    global occurrencesDictionary
+    occurrencesDictionary = load_utilities(modelPath)
     global utility_threshold_array
     utility_threshold_array = load_utility_threshold(modelPath)
 
