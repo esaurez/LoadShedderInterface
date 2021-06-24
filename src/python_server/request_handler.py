@@ -1,12 +1,16 @@
+import os
 import sys
 from configobj import ConfigObj
 
 import capnp
 
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(script_dir, "../"))
 import model.build_model
 import mapping_features
 
-mapping_capnp = capnp.load('capnp_serial/mapping.capnp')
+from capnp_serial import mapping_capnp
+
 
 """
 train the model

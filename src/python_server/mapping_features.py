@@ -42,10 +42,11 @@ def map_feature(feature, fullHistogramBinSize=None):
     if feature.type == mapping_capnp.Feature.Type.fullColorHistogram:
         return map_full_histogram(feature.feat.wholeHisto, fullHistogramBinSize)
 
-    if feature.type == mapping_capnp.Feature.Type.contours:
+    elif feature.type == mapping_capnp.Feature.Type.contours:
         return map_contour(feature.feat.contours)
 
     # TODO: add code for the remaining features
+    raise Exception("Invalid feature type: not supported yet")
 
 
 def map_features(features, fullHistogramBinSize=None):

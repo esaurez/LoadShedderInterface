@@ -21,3 +21,4 @@
           - pycapnp 
           - opencv-python
           - numpy
+          - configobj

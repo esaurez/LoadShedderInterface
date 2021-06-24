@@ -9,7 +9,7 @@ from configobj import ConfigObj
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_dir, "../"))
 
-from capnp_serial import mapping_capnp
+from capnp_serial import mapping_capnp,messages_capnp
 
 import model.build_model
 import mapping_features
@@ -72,7 +72,8 @@ class InterfaceReqHandler:
         return reply
 
     def handle_util_req(self, util_req):
-        features = util_req.feats.feats
+        #features = util_req.feats.feats
+        features = util_req.feats
 
         # Function call to compute the utility for given features
         utility = self.compute_utility(features)
