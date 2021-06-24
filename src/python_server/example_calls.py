@@ -16,7 +16,7 @@ PORT = 5556
 def test_utility_threshold_function():
     drop_ratio = 0.8
 
-    interface = server.InterfaceReqHandler(PORT)
+    interface = server.InterfaceReqHandler(PORT, "config.properties")
     util_msg = messages_capnp.UtilityMessage.new_message()
     util_msg.messageType = "utilityThresholdRequest"
     util_msg.init("utilityThresholdRequest")
@@ -37,7 +37,7 @@ def test_utility_function():
     mat = np.zeros((10,10,3), dtype=np.uint8)
     cv2.randn(mat, 128, 50)
 
-    interface = server.InterfaceReqHandler(PORT)
+    interface = server.InterfaceReqHandler(PORT, "config.properties")
     util_msg = messages_capnp.UtilityMessage.new_message()
     util_msg.messageType = "utilityRequest"
     util_msg.init("utilityRequest")

@@ -1,7 +1,15 @@
 import glob
 import capnp
+import os 
+import sys
+import capnp
 
-mapping_capnp = capnp.load('capnp_serial/mapping.capnp')
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(script_dir, "../"))
+
+from capnp_serial import mapping_capnp
+
+#mapping_capnp = capnp.load('capnp_serial/mapping.capnp')
 
 
 def map_histogram(histogram, fullHistogramBinSize):
@@ -85,3 +93,4 @@ def load_training_data(path, fullHistogramBinSize=None):
 
 
 def init(properties_file):
+    pass
