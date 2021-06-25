@@ -21,10 +21,10 @@ find_library(ZeroMQ_LIBRARY
         PATHS ${PC_ZeroMQ_LIBRARY_DIRS}
         )
 
-set(SOURCE_FILES main.cpp comm_agent.cpp)
-add_executable(interface ${SOURCE_FILES})
+set(SOURCE_FILES comm_agent.cpp)
+add_library(loadshedinterface ${SOURCE_FILES})
 
 ## add the include directory to our compile directives
-target_include_directories(interface PUBLIC ${ZeroMQ_INCLUDE_DIR} ${CAPNPC_OUTPUT_DIR} ${CAPNP_INCLUDE_DIRS})
+target_include_directories(loadshedinterface PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ZeroMQ_INCLUDE_DIR} ${CAPNPC_OUTPUT_DIR} ${CAPNP_INCLUDE_DIRS})
 ## at the 0mq library to our link directive
-target_link_libraries(interface PUBLIC ${ZeroMQ_LIBRARY} mappingcap)
+target_link_libraries(loadshedinterface PUBLIC ${ZeroMQ_LIBRARY} mappingcap)

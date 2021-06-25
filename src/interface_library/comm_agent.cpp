@@ -13,7 +13,7 @@ CommAgent::~CommAgent() {
     sock->close();
 }
 
-float CommAgent::getUtilityThreshold(float dropRatio) {
+double CommAgent::getUtilityThreshold(float dropRatio) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_THRESHOLD_REQUEST);
@@ -23,11 +23,11 @@ float CommAgent::getUtilityThreshold(float dropRatio) {
     auto charArray1 = wordArray1.asChars();
     std::shared_ptr<const std::string> serializedOut = std::make_shared<const std::string> (charArray1.begin(), charArray1.end());
     zmq::message_t request((void*)serializedOut->data(), serializedOut->size(), NULL);
-    sock->send (request);
+    sock->send (std::move(request), zmq::send_flags::none);
 
     // Handling of the reply
     zmq::message_t reply;
-    sock->recv ( &reply);
+    sock->recv (reply);
     std::shared_ptr<const std::string> serialized = std::make_shared<const std::string>(static_cast<char*>(reply.data()), reply.size());
 
     auto num_words = serialized->size() / sizeof(capnp::word);
@@ -39,21 +39,21 @@ float CommAgent::getUtilityThreshold(float dropRatio) {
     return capnpMessage.getUtilityThresholdResponse().getThreshold();
 }
 
-float CommAgent::getUtilityValue(Features::Builder &features) {
+double CommAgent::getUtilityValue(Features::Builder &features) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_REQUEST);
     UtilityRequest::Builder utilThresholdReq = utilMessage.initUtilityRequest();
-    utilMessage.getUtilityRequest().setFeats(features.asReader());
+    utilThresholdReq.setFeats(features.asReader());
     auto wordArray1 = ::capnp::messageToFlatArray(message);
     auto charArray1 = wordArray1.asChars();
     std::shared_ptr<const std::string> serializedOut = std::make_shared<const std::string> (charArray1.begin(), charArray1.end());
     zmq::message_t request((void*)serializedOut->data(), serializedOut->size(), NULL);
-    sock->send (request);
+    sock->send (std::move(request), zmq::send_flags::none);
 
     // Handling of the reply
     zmq::message_t reply;
-    sock->recv ( &reply);
+    sock->recv (reply);
     std::shared_ptr<const std::string> serialized = std::make_shared<const std::string>(static_cast<char*>(reply.data()), reply.size());
 
     auto num_words = serialized->size() / sizeof(capnp::word);
