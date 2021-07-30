@@ -17,6 +17,7 @@ def map_histogram(histogram, fullHistogramBinSize):
     simpleFeatures = [0] * numberOfBins
     for counts in histogram.counts:
         bin = 0
+        print(histogram.counts)
         for count in counts.count:
             index = int(bin / fullHistogramBinSize)
             simpleFeatures[index] += count
@@ -55,6 +56,7 @@ def map_features(features, fullHistogramBinSize=None):
         tempFeatures = map_feature(feature, fullHistogramBinSize)
         simple_features.extend(tempFeatures)
 
+   # print(simple_features)
     return simple_features
 
 

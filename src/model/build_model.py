@@ -39,7 +39,6 @@ def discretize_observation(featureList, featureCorrespondingBinSize):
             featureList[i] = int(featureList[i] // featureCorrespondingBinSize[i])
         else:
             featureList[i] = int(featureList[i] // featureCorrespondingBinSize[0])
-
     return featureList
 
 
@@ -51,7 +50,6 @@ def discretize_observations(observations, featureCorrespondingBinSize):
         discretize_observation(featureList, featureCorrespondingBinSize)
         for i in range(len(featureList)):
             observation[i] = featureList[i]
-
 
 """
 Count the number of occurrences of each distinct observation and the number of complex events detected 
@@ -75,6 +73,7 @@ def get_occurrence_count(observations):
         else:
             occurrencesDictionary[key] = [1, label, 0.0]
 
+#    print(occurrencesDictionary)
     return occurrencesDictionary
 
 
