@@ -33,6 +33,7 @@ struct Histogram{
   ranges @2 :List(Range);
   channels @3 :List(UInt8);
   dimensions @4 :List(UInt8);
+  totalCountedPixels @5 :UInt64;
 }
 
 struct FullHistogram{
@@ -75,10 +76,18 @@ struct Features{
   feats @0: List(Feature);
 }
 
+struct DetectionMetadata{
+  minSize @0 :UInt32;
+  maxSize @1 :UInt32;
+  totalDetectionSize @2 :UInt32;
+  totalDetections @3 :UInt32;
+}
+
 struct LabeledData{
   frameIndex @0 :Text;
   label @1 :Bool;
   feats @2 :Features;
+  detections @3 :DetectionMetadata;
 }
 
 struct VideoFeatures {
