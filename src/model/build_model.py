@@ -27,8 +27,50 @@ def get_observation_key(featureList):
 Perform binning.
 observations: list of list. It contains all gathered observations.
 featureCorrespondingBinSize: bin size for each feature in observations
+split_values: for hsb: divides the COUNT into "many and few", e.g., based on expected min-car size
 """
 
+colors = [10,20,30,50,70,90,110,130,150,170,180,255]
+def assign_hsb_feature_to_eqv_classes(featureList, split_values):
+    """
+    input: list of features with count per colors, list of split values (to which class to assign the color)
+    output: list of class-assignments, e.g., [1,0,0,1,0,0] if we had two colors and the feature list has low value per color, i.e. maps to the first class.
+
+    takes a features List that has count per color and splits it into classes according to small or high count.
+    how to split is defined by split_values
+    for now, we have frames of same size so we take absolut split_values
+    """    
+    
+    number_of_classes = len(split_values)+1 # e.g. only one value: two classes
+    #classified_features = [0] * (len(colors) * number_of_classes)
+    classified_features = [0] * (len(featureList) * number_of_classes)
+    #for i in range(len(colors)):
+    for i in range(len(featureList)):
+        if len(split_values) > 1:
+            sv = 0
+            for j in range(0,len(split_values)):
+                if featureList[i] > split_values[j]:
+                    sv = j
+            classified_features[i*number_of_classes+sv] = 1 ### to check!! 
+         #   print(f'feature {featureList[i]} belongs to class {sv} which is the value {split_values[sv]}')
+        else:
+            if featureList[i]<split_values[0]:
+                classified_features[i*number_of_classes]  = 1
+            else:
+                classified_features[i*number_of_classes+1] = 1
+              #  print(f'big enough for color:{colors[i]}')
+   # print(classified_features)
+    return classified_features
+
+def assign_hsb_features_to_eqv_classes(observations, split_values):
+    converted_observations = []
+    for observation in observations:
+        featureList = observation[0:-1]
+        label = observation[-1]
+        class_assignment = assign_hsb_feature_to_eqv_classes(featureList,split_values)
+        class_assignment.append(label)
+        converted_observations.append(class_assignment)
+    return converted_observations
 
 def discretize_observation(featureList, featureCorrespondingBinSize):
     # iterate over all features
@@ -63,6 +105,7 @@ return a dictionary that contains the occurrences of each distinct observation a
 def get_occurrence_count(observations):
     occurrencesDictionary = dict()
     for observation in observations:
+        
         featureList = observation[:-1]
         label = observation[-1]
 
@@ -72,7 +115,7 @@ def get_occurrence_count(observations):
             occurrencesDictionary[key][1] += label
         else:
             occurrencesDictionary[key] = [1, label, 0.0]
-
+    return occurrencesDictionary
 #    print(occurrencesDictionary)
     return occurrencesDictionary
 
@@ -88,6 +131,7 @@ def build_utility_array(occurrencesDictionary):
         sum_labels = value[1]
         ut = sum_labels / occ
         occurrencesDictionary[key][2] = ut
+    #print(occurrencesDictionary)
 
 
 def find_min_and_max_utilities(occurrencesDictionary):
@@ -202,6 +246,8 @@ def plot_occurrences(path, occurrencesDictionary, max_occ):
     plt.clf()
     plt.plot(range(su), cdf)
     #     plt.show()
+    plt.ylabel('frequency cumulative')
+    plt.xlabel('occurrences')
     plt.savefig(path + "/occurrences_cumulative.png")
 
     plt.clf()
@@ -245,7 +291,7 @@ def plot_utility_threshold(path, utility_threshold_array, utility_frequency_in_o
     su = len(utility_threshold_array)
     plt.clf()
     plt.plot(range(su), utility_threshold_array)
-    plt.ylabel('occurrence')
+    plt.ylabel('threshold')
     plt.xlabel('utility')
     # plt.show()
     plt.savefig(path + "/utility_threshold_cumulative.png")
@@ -267,10 +313,14 @@ featureCorrespondingBinSize: list. bin size for each feature in observations
 """
 
 
-def train(observations, featureCorrespondingBinSize, generatedModelPath, utilityNormalizationUpperBound):
-    discretize_observations(observations, featureCorrespondingBinSize)
+def train(observations,  generatedModelPath, utilityNormalizationUpperBound, split_values = None,featureCorrespondingBinSize=None):
+    #discretize_observations(observations, featureCorrespondingBinSize) # rgb based
+
+    observations = assign_hsb_features_to_eqv_classes(observations,split_values) 
+
     occurrencesDictionary = get_occurrence_count(observations)
     build_utility_array(occurrencesDictionary)
+    #print(occurrencesDictionary)
     min_occ, max_occ, min_ut, max_ut = find_min_and_max_utilities(occurrencesDictionary)
     percentile_list = get_percentile_utility_occurrences(occurrencesDictionary)
     normalize_utilities(occurrencesDictionary, min_ut, percentile_list, 95, utilityNormalizationUpperBound)
@@ -300,7 +350,8 @@ def get_utility_threshold(dropRatio):
 
 
 def get_utility(featureList):
-    featureList = discretize_observation(featureList, featureCorrespondingBinSize)
+    featureList = assign_hsb_feature_to_eqv_classes(featureList, split_values)
+  #  featureList = discretize_observation(featureList, featureCorrespondingBinSize)
 
     # key for features (except label)
     key = get_observation_key(featureList)
@@ -310,15 +361,26 @@ def get_utility(featureList):
     return utility
 
 
-def init_shedding(modelPath, featureBinSize):
-    global featureCorrespondingBinSize
-    featureCorrespondingBinSize = featureBinSize
+def init_shedding(modelPath,sv):#, featureBinSize):
+  #  global featureCorrespondingBinSize
+  #  featureCorrespondingBinSize = featureBinSize
+    global split_values
+    split_values = sv
     global occurrencesDictionary
     occurrencesDictionary = load_utilities(modelPath)
     global utility_threshold_array
     utility_threshold_array = load_utility_threshold(modelPath)
 
-
+def test_hsb():
+    observations = [[10,2,1,1],
+                    [1,2,1,1]
+    ]
+    split_values = [3]
+    generatedModelDirectory = "./"
+    featureCorrespondingBinSize = [1]
+    utilityNormalizationUpperBound = 100
+    train(observations, featureCorrespondingBinSize,generatedModelDirectory,utilityNormalizationUpperBound,split_values)
+    
 def test():
     observations = [[1, 1, 1, 1],
                     [1, 1, 1, 1],

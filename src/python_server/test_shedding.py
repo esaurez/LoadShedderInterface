@@ -18,16 +18,22 @@ from capnp_serial import mapping_capnp
 
 def shed(properties_file, drop_ratio, ls_result_path):
     config = ConfigObj(properties_file)
-    fullHistogramBinSize = int(config["fullHistogramBinSize"])
-    featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
-    trainingDataPath = config["trainingDataPath"]
-    generatedModelPath = config["generatedModelPath"]
 
+  #  fullHistogramBinSize = int(config["fullHistogramBinSize"])
+  #  featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
+    trainingDataPath = config["trainingDataPath"]
+    trainingDataPath = config["testDataPath"] # use test  data instead of training data.
+    generatedModelPath = config["generatedModelPath"]
+    splitvalues = config["splitvalues"]
+    #split_value_array = splitvalues.split(',')
+    for i in range(len(splitvalues)):
+        splitvalues[i] = int(splitvalues[i])
+  #  print(split_value_array)
     # initialize shedding
-    build_model.init_shedding(generatedModelPath, featureCorrespondingBinSize)
+    build_model.init_shedding(generatedModelPath, splitvalues)#, featureCorrespondingBinSize)
 
     # load features
-    observations = mapping_features.load_training_data(trainingDataPath, fullHistogramBinSize)
+    observations,_ = mapping_features.load_training_data(trainingDataPath)#, fullHistogramBinSize) 
 
     # get the utility threshold
     utility_threshold = build_model.get_utility_threshold(drop_ratio)
@@ -35,6 +41,9 @@ def shed(properties_file, drop_ratio, ls_result_path):
     # create the result directory if not exists
     Path(ls_result_path).mkdir(parents=True, exist_ok=True)
     # open a file to save shedding results
+
+    print(ls_result_path)
+
     f = open(os.path.join(ls_result_path, "shedding_results.csv"), 'w')
     csv_writer = csv.writer(f)
     # write the header
@@ -60,6 +69,7 @@ if __name__ == "__main__":
                         help="Path to the properties file.")
     parser.add_argument("-d", "--drop_ratio", dest="drop_ratio", required=True, type=float,
                         help=" the drop ratio.")
+
     parser.add_argument("-r", "--result_path", dest="ls_result_path", required=True, type=str,
                         help="Path to save the shedding result.")
 

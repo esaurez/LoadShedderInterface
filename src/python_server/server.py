@@ -25,9 +25,11 @@ class InterfaceReqHandler:
 
         config = ConfigObj(properties_file)
         self.fullHistogramBinSize = int(config["fullHistogramBinSize"])
-        featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
+       #featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
+        splitvalues = config["splitvalues"] 
         generatedModelPath = config["generatedModelPath"]
-        model.build_model.init_shedding(generatedModelPath, featureCorrespondingBinSize)
+        #model.build_model.init_shedding(generatedModelPath, featureCorrespondingBinSize) 
+        model.build_model.init_shedding(generatedModelPath, splitvalues) # hsb
 
     def run(self):
         while True:
@@ -50,13 +52,12 @@ class InterfaceReqHandler:
 
     ## Stuttgart folks implement this function ##
     def compute_util_threshold(self, drop_ratio):
-        # return 0.5 # TODO
         return model.build_model.get_utility_threshold(drop_ratio)
 
     ## Stuttgart folks implement this function ##
     def compute_utility(self, features):
-        # return 0.6 # TODO
-        featureList = mapping_features.map_features(features, self.fullHistogramBinSize)
+        #featureList = mapping_features.map_features(features, self.fullHistogramBinSize)
+        featureList = mapping_features.map_features(features)
         return model.build_model.get_utility(featureList)
 
     def handle_util_threshold_req(self, util_threshold_req):
