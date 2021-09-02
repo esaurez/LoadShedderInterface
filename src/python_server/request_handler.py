@@ -17,7 +17,7 @@ train the model
 """
 
 
-def train(properties_file):
+def train(properties_file, min_bin_size=0.1):
     config = ConfigObj(properties_file)
 
 
@@ -29,37 +29,24 @@ def train(properties_file):
     trainingDataPath = config["trainingDataPath"]
     generatedModelPath = config["generatedModelPath"]
     split_values = config["splitvalues"]
+    min_bin_size = float(config["minimumBinSize"])
     split_values = [int(x) for x in split_values]
 
     # load stored label data
-    observations, min_sizes = mapping_features.load_training_data(trainingDataPath) #, fullHistogramBinSize)
-
-    smallest_size = min(min_sizes)
-    biggest_minsize = max(min_sizes)
-    # train the model
-    
-  #  split_values = [smallest_size,biggest_minsize]
- #   split_values = [smallest_size] # smallest only.
- #   split_values = min_sizes # take all of them
- #   split_values.sort()
- #   split_values = split_values[0:3]
- #   split_values = [sum(min_sizes) // len(min_sizes)] # try average
-  #  split_values=[biggest_minsize]
-   # split_values = min_sizes
-   # split_values.sort()
-   # split_values = 
-
-  #  bins_per_color = 100
-  ##  step = max(min_sizes)
-  #  step = sum(min_sizes) // len(min_sizes) # tried min, max, and mean.
-  #  step = 1000
-  #  split_values = [i * step for i in range(1,bins_per_color)]
-
-  #model.build_model.train(observations, featureCorrespondingBinSize, generatedModelPath,
+    observations = mapping_features.load_training_data(trainingDataPath) #, fullHistogramBinSize)
+    # model.build_model.train(observations, featureCorrespondingBinSize, generatedModelPath,
     #                        utilityNormalizationUpperBound,split_values=split_values)
     
-    model.build_model.train(observations, generatedModelPath,
-                            utilityNormalizationUpperBound,split_values=split_values)
+
+    # iterate here over colors.
+
+    colors = ['red', 'orange','yellow','spring_green','green','ocean_green','light_blue','blue','purple','magenta']
+
+    
+    model.build_model.train(observations, generatedModelPath, 
+                              utilityNormalizationUpperBound, split_values=split_values, min_bin_size = min_bin_size)
+
+      # should return the split value to be written into the properties file. or add that into the model-folder! 
 
    # split_values_to_string = ""
    # for split_value in split_values:

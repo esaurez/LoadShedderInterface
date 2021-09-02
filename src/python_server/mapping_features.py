@@ -14,38 +14,44 @@ from capnp_serial import mapping_capnp
 #mapping_capnp = capnp.load('capnp_serial/mapping.capnp')
 
 # HSB
-colors = [10,20,30,50,70,90,110,130,150,170,180,255] # red has 0-10 and 180-255
+colors = [10,20,30,50,70,90,110,130,150,170,180,255] # red has 0-10 and 170-180 !! 
 
 def map_hsb_histogram(histogram):
     color_counts = [0] * len(colors)# equivalent to simplefeatures below
     color = 0
     total_counts = histogram.totalCountedPixels
-    
-  #  print(len(histogram.counts[0].count))
-    h_counts = histogram.counts[0].count # assumption: counts is list with three lists: one for H, one for S, one for B.
-    #print (h_counts)
-  #  print(histogram.channels)
-  #  print(histogram.ranges)
-  #  print(histogram.dimensions) 
-   # print(histogram.histSize) # no of total pixels
 
+    h_counts = histogram.counts[0].count # assumption: counts is list with three lists: one for H, one for S, one for B.
     for i in range(len(h_counts)): # should be 256
         color_counts[color] += h_counts[i]
         if i == colors[color]: #  <= semantics for hue count.
             color+=1
-    
-    # add up red bins which are the first and the last
-    color_counts[0] = color_counts[0] + color_counts[-1]
-    color_counts = color_counts[:-1]
+    # add up red bins which are the first and the second! last
+    color_counts[0] = color_counts[0] + color_counts[-2] 
+    last_color = color_counts[-1]
+    color_counts = color_counts[:-2]
+    color_counts.append(last_color)
 
-  #  print(color_counts)
-  #  print(sum(color_counts))
-  #  print(total_counts)
-    
+    #print(color_counts)
+    #print(sum(color_counts))
+    #print(total_counts)
+  
     normalized_color_counts = [(x / total_counts)*100 for x in color_counts] # prozente in vollen 100ern.
   #  print(normalized_color_counts)
     color_counts = normalized_color_counts
-    return color_counts # list of 13 bins with the count per bin. # maybe make red together.
+
+    # try with two colors, only: color of interest and "other"
+
+    sum_red=color_counts[0]
+    sum_other=sum(color_counts[1:])
+    color_counts_coi = [sum_red,sum_other] # red only.
+
+    # here return either all colors or coi.
+
+    #print(color_counts_coi)
+
+    return color_counts # all colors binned.
+    #return color_counts_coi # active for color of interest.
     
 
 def map_histogram(histogram, fullHistogramBinSize):
@@ -79,7 +85,7 @@ def map_contour(contour):
     return simpleFeatures
 
 
-def map_feature(feature, fullHistogramBinSize=None): # TODO requires a feature type hsbhistogram with an hsbHistogram
+def map_feature(feature, fullHistogramBinSize=None): 
    # if feature.type == mapping_capnp.Feature.Type.fullHSBHistogram:
    #     return map_full_hsb_histogram(feature.feat.hsbHistogram)
 
@@ -94,7 +100,7 @@ def map_feature(feature, fullHistogramBinSize=None): # TODO requires a feature t
     raise Exception("Invalid feature type: not supported yet")
 
 
-def  map_features(features, fullHistogramBinSize=None):
+def map_features(features, fullHistogramBinSize=None):
     simple_features = []
     for feature in features.feats:
         tempFeatures = map_feature(feature, fullHistogramBinSize)
@@ -102,10 +108,15 @@ def  map_features(features, fullHistogramBinSize=None):
 
     return simple_features
 
-
+import csv
 def map_labeled_data(labeledData, fullHistogramBinSize=None):
-    observation = map_features(labeledData.feats, fullHistogramBinSize)
-    observation.append(int(labeledData.label))
+    observation = map_features(labeledData.feats, fullHistogramBinSize) # histogram
+    observation.append(int(labeledData.label)) # respective label
+
+    # todo if I want to store feature list to .csv 
+  #  with open("colors_testdata.csv", "a") as fp:
+  #      wr = csv.writer(fp, dialect='excel')
+  #      wr.writerow(observation)
 
     return observation
 
@@ -152,7 +163,7 @@ def load_training_data(path, fullHistogramBinSize=None):
            # observations.extend(map_training(trainingData, fullHistogramBinSize))
             
 
-    return observations, min_sizes
+    return observations
 
 
 def init(properties_file):
