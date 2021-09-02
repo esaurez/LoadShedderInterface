@@ -52,13 +52,13 @@ class InterfaceReqHandler:
 
     ## Stuttgart folks implement this function ##
     def compute_util_threshold(self, drop_ratio):
-        return model.build_model.get_utility_threshold(drop_ratio)
+        return model.build_model.get_utility_threshold(drop_ratio) #! Returns two values now. First one is the threshold. 
 
     ## Stuttgart folks implement this function ##
     def compute_utility(self, features):
         #featureList = mapping_features.map_features(features, self.fullHistogramBinSize)
-        featureList = mapping_features.map_features(features)
-        return model.build_model.get_utility(featureList)
+        featureList = mapping_features.map_features(features) # does only need the feature, not the HistogramBinSize any longer.
+        return model.build_model.get_utility(featureList) # needs the mode now as second feature. Mode is written in the config file
 
     def handle_util_threshold_req(self, util_threshold_req):
         drop_ratio = util_threshold_req.dropRatio

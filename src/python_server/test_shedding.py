@@ -20,28 +20,21 @@ from capnp_serial import mapping_capnp
 def shed(properties_file, drop_ratio, ls_result_path):
     config = ConfigObj(properties_file)
 
-  # deprecated:
-  #  fullHistogramBinSize = int(config["fullHistogramBinSize"])
-  #  featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
-
     trainingDataPath = config["trainingDataPath"]
     trainingDataPath = config["testDataPath"] # use test  data instead of training data.
     generatedModelPath = config["generatedModelPath"]
     mode = config["mode"]
 
     # initialize shedding
-    build_model.init_shedding(generatedModelPath)#, splitvalues)#, featureCorrespondingBinSize)
+    build_model.init_shedding(generatedModelPath)
 
     # load features
-    observations = mapping_features.load_training_data(trainingDataPath)#, fullHistogramBinSize) 
+    observations = mapping_features.load_training_data(trainingDataPath) 
 
     # get the utility threshold
-    utility_threshold, th_ratio = build_model.get_utility_threshold(drop_ratio, mode)
-    print("ulitlity threshold:")
-    print(utility_threshold)
-    print("th ratio")
-    print(th_ratio)
-    
+    utility_threshold, th_ratio = build_model.get_utility_threshold(drop_ratio, mode) # new! this now requires the utility threshold AND the respective ratio.
+
+    # for later use (see below)
     # ratio_share = drop_ratio / th_ratio # the drop ratio might be smaller than the real ratio. so only shed the respective share.
 
     # create the result directory if not exists
@@ -57,21 +50,15 @@ def shed(properties_file, drop_ratio, ls_result_path):
     #stats
     number_of_frames= 0
     number_of_dropped_frames= 0
-    #picked_colors = dict()
-    #found_classes = dict()
-    
    
     for observation in observations:
-        utility = build_model.get_utility(observation[:-1], mode) # check mode!
-       # found_classes[class_] = found_classes.get(class_,0) + 1 # works cause we're looking for red, only.
-      #  picked_colors[max_color] = picked_colors.get(max_color,0)+1 # just for logging purposes
-       
+        utility = build_model.get_utility(observation[:-1], mode) 
 
         ratio_share = drop_ratio / th_ratio # the drop ratio might be smaller than the real ratio. so only shed the respective share.
         if utility > utility_threshold:  # keep
             csv_writer.writerow([utility_threshold, utility, False, bool(observation[-1])])
-        else:  # shed or not shed ;)
-
+        else: 
+          # keep this option in case we always shed too much:! 
             # 2021-08-26-HR adapt for probabilistic shedding of the utility on the threshold itself to overcome the problem of 
             # imprecise shedding.
           #  if utility == utility_threshold:
@@ -85,6 +72,8 @@ def shed(properties_file, drop_ratio, ls_result_path):
           #          number_of_dropped_frames +=1
           #          print("shed randomly")
           #  else:
+          
+          # shed:
             csv_writer.writerow([utility_threshold, utility, True, bool(observation[-1])])
             number_of_dropped_frames +=1
         number_of_frames +=1
