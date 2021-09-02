@@ -49,3 +49,6 @@ __pycache__
 # figures
 *.png
 *.pdf
+src/models
+src/test_results
+plot_color_distributions.py
