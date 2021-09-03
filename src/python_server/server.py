@@ -16,7 +16,6 @@ import mapping_features
 
 
 class InterfaceReqHandler:
-    fullHistogramBinSize = 1
 
     def __init__(self, port, properties_file):
         self.context = zmq.Context()
@@ -24,12 +23,11 @@ class InterfaceReqHandler:
         self.socket.bind("tcp://*:%s" % port)
 
         config = ConfigObj(properties_file)
-        self.fullHistogramBinSize = int(config["fullHistogramBinSize"])
        #featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
         splitvalues = config["splitvalues"] 
         generatedModelPath = config["generatedModelPath"]
         #model.build_model.init_shedding(generatedModelPath, featureCorrespondingBinSize) 
-        model.build_model.init_shedding(generatedModelPath, splitvalues) # hsb
+        model.build_model.init_shedding(generatedModelPath) # hsb
 
     def run(self):
         while True:
@@ -51,20 +49,20 @@ class InterfaceReqHandler:
         return reply
 
     ## Stuttgart folks implement this function ##
-    def compute_util_threshold(self, drop_ratio):
-        return model.build_model.get_utility_threshold(drop_ratio) #! Returns two values now. First one is the threshold. 
+    def compute_util_threshold(self, drop_ratio, mode):
+        return model.build_model.get_utility_threshold(drop_ratio, mode) #! Returns two values now. First one is the threshold. 
 
     ## Stuttgart folks implement this function ##
-    def compute_utility(self, features):
-        #featureList = mapping_features.map_features(features, self.fullHistogramBinSize)
+    def compute_utility(self, features, mode):
         featureList = mapping_features.map_features(features) # does only need the feature, not the HistogramBinSize any longer.
-        return model.build_model.get_utility(featureList) # needs the mode now as second feature. Mode is written in the config file
+        return model.build_model.get_utility(featureList, mode) # needs the mode now as second feature. Mode is written in the config file
 
     def handle_util_threshold_req(self, util_threshold_req):
         drop_ratio = util_threshold_req.dropRatio
+        mode = util_threshold_req.mode
 
         # Function call to compute the util threshold for given drop ratio
-        util_threshold = self.compute_util_threshold(drop_ratio)
+        util_threshold, th_ratio = self.compute_util_threshold(drop_ratio, mode)
 
         reply = messages_capnp.UtilityMessage.new_message()
         reply.messageType = "utilityThresholdResponse"
@@ -75,9 +73,10 @@ class InterfaceReqHandler:
     def handle_util_req(self, util_req):
         #features = util_req.feats.feats
         features = util_req.feats
+        mode = util_req.mode
 
         # Function call to compute the utility for given features
-        utility = self.compute_utility(features)
+        utility = self.compute_utility(features, mode)
 
         reply = messages_capnp.UtilityMessage.new_message()
         reply.messageType = "utilityResponse"
