@@ -5,7 +5,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 import json
-
+import random
 import pandas as pd
 
 occurrencesDictionary = dict()
@@ -257,7 +257,7 @@ def compute_utility_frequncy_and_threshold_probabilities(occurrencesDictionary):
     df.sort_values(by =['ut'], inplace = True)
 
     df['ratio'] = df.total.cumsum() / sum(df.total)
-    print(df)
+    #print(df)
     output = df[['ut','ratio']].to_numpy()
     return output
 
@@ -535,7 +535,6 @@ def rearrange_split_values(observations, min_bin_size):
             if class_index < len(available_classes)-1:
                 upper_class= available_classes[class_index +1]
                 upper = counts_per_class.loc[upper_class].label
-        
             lower_split_value = split_values[class_] # class is the position in the original array.
             
             upper_split_value = split_values_reduced[split_values_reduced.index(lower_split_value)+1]
@@ -554,7 +553,7 @@ def rearrange_split_values(observations, min_bin_size):
                 del split_values_reduced[index_ + 1]
         counts_per_class = df.groupby('class_').count()
 
-    print(split_values_reduced)
+   # print(split_values_reduced)
     # for each split value, get the position in the original list.
     # this is then the mapping.
     mapping = dict()
@@ -655,8 +654,8 @@ def train(observations,  generatedModelPath, utilityNormalizationUpperBound, spl
     percentile_list_all_colors = get_percentile_utility_occurrences(all_color_occurences)
 
     
-    print("all colors utility distribution:")
-    print(percentile_list_all_colors)
+    #print("all colors utility distribution:")
+    #print(percentile_list_all_colors) # activate again for diff. ds
     
 
         # hier nimm die max-row vom occurences dictionary und geh ab dort weiter.
@@ -664,7 +663,7 @@ def train(observations,  generatedModelPath, utilityNormalizationUpperBound, spl
     normalized_all_color_occurences = normalize_utilities(all_color_occurences.copy(), min_ut, percentile_list_all_colors, 95, utilityNormalizationUpperBound)
 
     utility_threshold_array_array_colors = compute_utility_frequncy_and_threshold_probabilities(all_color_occurences)
-    print(utility_threshold_array_array_colors)
+   # print(utility_threshold_array_array_colors)
 
     
         # save utilities
@@ -723,7 +722,8 @@ def get_utility_threshold(dropRatio, mode):
         for ratio, ut in all_color_utility_threshold_array:
             if ratio >= dropRatio:
                 return ut, ratio
-
+    if mode == 'random':
+        return dropRatio, dropRatio # utility = ratio. 
     # to be used with normalized 
      #   for i,value  in enumerate(all_color_utility_threshold_array):
      #       print("all colors utility threshold:")
@@ -749,9 +749,10 @@ def get_utility_threshold(dropRatio, mode):
 
 
 def get_utility(featureList, mode):
-
-    # max - approach first.
-    max_color = None
+    utility = 0
+    if mode == 'random':
+        utility = random.random() # returns random no between 0 and 1
+      
     if mode == 'all_colors':
         # get the class for each color.
         # merge them together and get the key from this class assignment.
@@ -761,7 +762,7 @@ def get_utility(featureList, mode):
             class_assignments.append(class_assignment[0])
         key = get_observation_key(class_assignments)
         utility =  all_colors_occurencesDictionary.get(key,len(all_color_utility_threshold_array)) # returns the max! not the min utility now. 
-    else:
+    if mode =='max_cdf':
         max_utility = 0
         for color in colors: 
             color_split_values = split_values[color]
@@ -783,7 +784,6 @@ def get_utility(featureList, mode):
                 max_color = color
 
         utility = max_utility
-
     return utility #, max_color, key
 
 

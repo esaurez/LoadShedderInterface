@@ -55,6 +55,7 @@ def shed(properties_file, drop_ratio, ls_result_path):
         utility = build_model.get_utility(observation[:-1], mode) 
 
         ratio_share = drop_ratio / th_ratio # the drop ratio might be smaller than the real ratio. so only shed the respective share.
+
         if utility > utility_threshold:  # keep
             csv_writer.writerow([utility_threshold, utility, False, bool(observation[-1])])
         else: 
