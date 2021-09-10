@@ -13,12 +13,14 @@ CommAgent::~CommAgent() {
     sock->close();
 }
 
-double CommAgent::getUtilityThreshold(float dropRatio) {
+double CommAgent::getUtilityThreshold(float dropRatio, const std::string &mode) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_THRESHOLD_REQUEST);
     UtilityThresholdRequest::Builder utilThresholdReq = utilMessage.initUtilityThresholdRequest();
     utilThresholdReq.setDropRatio(dropRatio);
+    utilThresholdReq.setMode(mode);
+
     auto wordArray1 = ::capnp::messageToFlatArray(message);
     auto charArray1 = wordArray1.asChars();
     std::shared_ptr<const std::string> serializedOut = std::make_shared<const std::string> (charArray1.begin(), charArray1.end());
@@ -39,12 +41,14 @@ double CommAgent::getUtilityThreshold(float dropRatio) {
     return capnpMessage.getUtilityThresholdResponse().getThreshold();
 }
 
-double CommAgent::getUtilityValue(Features::Builder &features) {
+double CommAgent::getUtilityValue(Features::Builder &features, const std::string& mode) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_REQUEST);
     UtilityRequest::Builder utilThresholdReq = utilMessage.initUtilityRequest();
     utilThresholdReq.setFeats(features.asReader());
+    utilThresholdReq.setMode(mode);
+
     auto wordArray1 = ::capnp::messageToFlatArray(message);
     auto charArray1 = wordArray1.asChars();
     std::shared_ptr<const std::string> serializedOut = std::make_shared<const std::string> (charArray1.begin(), charArray1.end());

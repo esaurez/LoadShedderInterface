@@ -20,6 +20,7 @@ struct UtilityMessage {
 
 struct UtilityThresholdRequest {
     dropRatio @0 :Float64;
+    mode @1 :Text;  
 }
 
 struct UtilityThresholdResponse {
@@ -28,6 +29,7 @@ struct UtilityThresholdResponse {
 
 struct UtilityRequest {
     feats @0 :Mapping.Features;
+    mode @1 :Text;  
 }
 
 struct UtilityResponse {
