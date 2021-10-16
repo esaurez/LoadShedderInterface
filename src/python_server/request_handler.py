@@ -29,6 +29,7 @@ def train(properties_file, min_bin_size=0.1):
     trainingDataPath = config["trainingDataPath"]
     generatedModelPath = config["generatedModelPath"]
     split_values = config["splitvalues"]
+    init_bin_width = float(config["init_bin_width"])
     min_bin_size = float(config["minimumBinSize"])
     split_values = [int(x) for x in split_values]
 
@@ -41,10 +42,9 @@ def train(properties_file, min_bin_size=0.1):
     # iterate here over colors.
 
     colors = ['red', 'orange','yellow','spring_green','green','ocean_green','light_blue','blue','purple','magenta']
-
     
     model.build_model.train(observations, generatedModelPath, 
-                              utilityNormalizationUpperBound, split_values=split_values, min_bin_size = min_bin_size)
+                              utilityNormalizationUpperBound, init_bin_width=init_bin_width, min_bin_size = min_bin_size)
 
       # should return the split value to be written into the properties file. or add that into the model-folder! 
 
