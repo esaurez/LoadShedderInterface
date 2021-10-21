@@ -144,6 +144,15 @@ def map_training(trainingData, absolute_pixel_count=False, fullHistogramBinSize=
 
     return observations, minSizes
 
+def read_samples(video_file):
+    observations = []
+    with open(video_file, 'rb') as f:
+        trainingData = mapping_capnp.Training.read(f) # list of "Training" objects.
+        for videoFeatures in trainingData.data: # ist nur ein video enthalten!
+            for labeled_data in videoFeatures.data:
+                observations.append(labeled_data)
+    return observations
+
 def read_training_file(videofile, absolute_pixel_count=False, fullHistogramBinSize=None):
     with open(videofile, 'rb') as f:
         trainingData = mapping_capnp.Training.read(f) # list of "Training" objects.
