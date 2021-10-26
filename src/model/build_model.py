@@ -137,7 +137,6 @@ def get_occurrence_count(observations):
             occurrencesDictionary[key] = [1, label, 0.0] # total, label sum, utility
     return occurrencesDictionary
 
-
 """
 build the utilites by dividing the number of complex event by the number of occurrence in occurrencesDictionary
 """
@@ -500,10 +499,9 @@ def plot_utility_threshold(path, utility_threshold_array, utility_frequency_in_o
     # plt.show()
     plt.savefig(path + "/utility_frequency_in_occ_dict.png")
 
-def rearrange_split_values(observations, min_bin_size):
+def rearrange_split_values(observations, min_bin_size, split_values):
     total = len(observations)
     min_count_per_class= total * min_bin_size # a bin needs at least min_bin_size*100 % of the data.
-    split_values = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
     df = pd.DataFrame(observations)
     df.columns = ['class_','label']
 
@@ -566,29 +564,43 @@ def rearrange_split_values(observations, min_bin_size):
 """
 build the model.
 observations: list of list. It contains all gathered observations.
+generatedModelPath: output path for storing the trained model
+utilityNormalizationUpperBound: 
+split_values: initial bin split values
+min_bin_size: min fraction of training samples that should exist in each bin
 featureCorrespondingBinSize: list. bin size for each feature in observations
 """
+def train(observations,  generatedModelPath, utilityNormalizationUpperBound, init_bin_width = 0.1,min_bin_size = 0.1, featureCorrespondingBinSize=None):
 
+    split_values=[]
+    i = 0
+    while i < 100:
+        split_values.append(i)
+        i += init_bin_width
+    split_values.append(100)
 
-def train(observations,  generatedModelPath, utilityNormalizationUpperBound, split_values = None,min_bin_size = 0.1, featureCorrespondingBinSize=None):
     #discretize_observations(observations, featureCorrespondingBinSize) # rgb based
 
-
     # for loop over colors.
-    
     classified_observations = dict()# todo.
     utilities = dict()
     label_added = False
     for color in colors:
-        print(color)
+        print("Processing color ", color)
+
+        # Assigning each frame to original bins
         color_observations = assign_hsb_features_to_eqv_classes(observations,split_values, color)
-        reduced_observations, output_split_values = rearrange_split_values(color_observations, min_bin_size)
+        #print (split_values)
+
+        # Recomputing bins to account for min bin size
+        reduced_observations, output_split_values = rearrange_split_values(color_observations, min_bin_size, split_values)
+        print (output_split_values)
+
         occurrencesDictionary = get_occurrence_count(reduced_observations) # hier habe ich ja eine tabelle mit label - color.
         # reduced observation: list of lists.
         classified_observations[color] = [x[0] for x in reduced_observations]
-
         
-    #occurrencesDictionary = get_occurrence_count(observations)
+        #occurrencesDictionary = get_occurrence_count(observations)
 
         # alles was mit occurencesDictionary zu tun hat ruhig color-wise machen.
         # aber dann benötige ich noch ein utility mapping für jeden frame.
