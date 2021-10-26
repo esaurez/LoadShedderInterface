@@ -79,9 +79,10 @@ def main(training_data, outdir):
             ax.text(.5,.9, key, horizontalalignment='center', transform=ax.transAxes)
             ax.get_legend().remove()
             if abs_pixel_count:
-                ax.set_xlabel("Absolute Pixel Count")
+                ax.set_ylabel("Absolute Pixel Count")
             else:
-                ax.set_xlabel("Pixel Fraction")
+                ax.set_ylabel("Pixel Fraction")
+            ax.set_xlabel("Frame ID (1 frame per second)")
             idx += 1
         fig.savefig(join(outdir, "pixel_fraction_vs_%s_abs_count_%s.png"%(video_file, str(abs_pixel_count))), bbox_inches="tight")
     
