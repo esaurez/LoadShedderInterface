@@ -27,6 +27,13 @@ def brute_force_count_fg(f):
                 count += 1
     return count
 
+def get_total_frame_weights(f):
+    total = 0
+    for row in f:
+        for col in row:
+            total += col
+    return total
+
 def main(video_file, low_frame_idx, high_frame_idx, bin_file, outdir):
     frame_to_label = read_pixel_hsv_from_video.map_frame_to_label(bin_file)
 
@@ -119,6 +126,11 @@ def main(video_file, low_frame_idx, high_frame_idx, bin_file, outdir):
                     frame_weightage[row][col] /= float(total_pixels)
                     f.write(str(frame_weightage[row][col])+" ")
                 f.write("\n")
+
+        t = get_total_frame_weights(frame_weightage)
+        if t < 0.999:
+            print ("Total weight %f != 1. Exiting."%t)
+            exit(0)
 
         frame_count += 1
 
