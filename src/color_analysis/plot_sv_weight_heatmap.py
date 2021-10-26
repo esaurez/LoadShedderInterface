@@ -66,12 +66,11 @@ def readjust_sv_weights(sv):
         for col in range(1, len(sv[row])):
             total += sv[row][col]
 
-    if total == 0:
-        return False
-
     for row in range(len(sv)):
         for col in range(len(sv[row])):
             if row == 0 or col == 0:
+                sv[row][col] = 0
+            elif total == 0:
                 sv[row][col] = 0
             else:
                 sv[row][col] /= total
@@ -81,6 +80,7 @@ def readjust_sv_weights(sv):
 def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel_fraction, max_weight):
     video_name = basename(bin_file)[:-4]
     util_matrix = None
+    total_matrix = None
 
             # Extracting the features from training data samples
     observations = python_server.mapping_features.read_training_file(bin_file, absolute_pixel_count=False)
@@ -105,6 +105,7 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
 
         sv_weights = read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
         res = readjust_sv_weights(sv_weights)
+
         if res == False or high_pf == False:
             frame_id += 1
             continue
@@ -115,6 +116,8 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
             for d in [True, False]:
                 for row in range(final_bin_size):
                     util_matrix[d].append([[] for i in range(final_bin_size)])
+
+            total_matrix = {True:0, False:0}
 
             # Check that the final_bin_size is a factor of original bin size
             orig_size = len(sv_weights)
@@ -128,6 +131,8 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
         for row in range(final_bin_size):
             for col in range(final_bin_size):
                 util_matrix[label][row][col].append(aggr[row][col])
+
+        total_matrix[label] += 1
 
         frame_id += 1
 
@@ -171,35 +176,67 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
 
             sns.heatmap(util_matrix[label], ax=ax, cmap="BuPu", vmin=0, vmax=vmax)
 
-            plot_label = "%s ; %s"%(label_str, normalized_str)
+            plot_label = "%s ; %s ; %d samples"%(label_str, normalized_str, total_matrix[label])
             ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
             idx += 1
 
     fig.suptitle("Video file = %s ; Bins = %d"%(video_name, final_bin_size))
-    fig.savefig(join(outdir, "sv_weight_heatmap_BIN_%d_%s.png"%(final_bin_size, video_name)), bbox_inches="tight")
+    filter_info = "_"
+    if filter_color:
+        filter_info += "%s_%.2f"%(filter_color, filter_pixel_fraction)
+    fig.savefig(join(outdir, "sv_weight_heatmap_PF%s_BIN_%d_%s.png"%(filter_info, final_bin_size, video_name)), bbox_inches="tight")
 
-    return
     # The second part of the script builds a utility model from the (s,v) 2D array
     combined_util_matrix = []
     for row in range(len(util_matrix[True])):
         combined_util_matrix.append([])
         for col in range(len(util_matrix[True][row])):
-            if row < 1 or col < 1:
-                continue
             combined_util_matrix[row].append(util_matrix[True][row][col] - util_matrix[False][row][col])
+
+    # Normalize
+    min_val = 1.0
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            min_val = min(min_val, combined_util_matrix[row][col])
+    if min_val < 0:
+        for row in range(len(combined_util_matrix)):
+            for col in range(len(combined_util_matrix[row])):
+                combined_util_matrix[row][col] += (0 - min_val)
+    max_val = 0.0
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            max_val = max(max_val, combined_util_matrix[row][col])
+
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            combined_util_matrix[row][col] /= max_val
 
     raw_data = []
     frame_id = 0
     for sample in training_samples:
         label = sample.label
+
+        high_pf = True
+        if filter_color != None and filter_pixel_fraction != None:
+            observation = observations[frame_id]
+            feature_list = observation[0:-1]
+            color_position = COLORS.index(filter_color)
+            pixel_fraction = feature_list[color_position]
+            if pixel_fraction < filter_pixel_fraction:
+                high_pf = False
+
         sv_weights = read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
+        res = readjust_sv_weights(sv_weights)
+
+        if res == False or high_pf == False:
+            frame_id += 1
+            continue
+
         aggr = aggregate_sv_weights(sv_weights, final_bin_size)
 
         util = 0
         for row in range(len(combined_util_matrix)):
             for col in range(len(combined_util_matrix[row])):
-                if row < 1 or col < 1 :
-                    continue
                 util += combined_util_matrix[row][col] * aggr[row][col]
 
         if label:
@@ -210,10 +247,12 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
         frame_id += 1
 
     df = pd.DataFrame(raw_data, columns=["frame_id", "label", "util"])
+    max_util = df["util"].max()
+    df["util"] = df["util"]/float(max_util)
     plt.close()
     fig, ax = plt.subplots(figsize=(6,2))
-    sns.scatterplot(data=df, x="label", y="util", ax=ax)
-    ax.set_xlabel("Frame ID (1 frame per sec)")
+    sns.boxplot(data=df, x="label", y="util", ax=ax)
+    ax.set_xlabel("Label of the frame")
     ax.set_ylabel("Utility")
     fig.savefig(join(outdir, "combined_util_BIN_%d_%s.png"%(final_bin_size, video_name)), bbox_inches="tight")
 
