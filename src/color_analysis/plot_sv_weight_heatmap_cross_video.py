@@ -50,6 +50,60 @@ def validate_inputs(frame_dirs, bin_files):
             return False
     return True
 
+def plot_sv_heatmap(util_matrix, total_matrix, max_weight, filter_color, filter_pixel_fraction, outdir, final_bin_size):
+    max_val = 0
+    for l in util_matrix:
+        for row in range(len(util_matrix[l])):
+            for col in range(len(util_matrix[l][row])):
+                m = util_matrix[l][row][col]
+                max_val = max(max_val, m)
+    plt.close()
+    rows = 1
+    cols = 2
+    fig, axs = plt.subplots(rows, cols, figsize=(cols*4, rows*4))
+    idx = 0
+    for normalize in [True]:
+        for label in util_matrix:
+            row = int(idx / cols)
+            col = idx - row*cols
+            if rows > 1:
+                ax = axs[row][col]
+            else:
+                ax = axs[col]
+
+            if normalize:
+                if max_weight:
+                    vmax = max_weight
+                else:
+                    vmax = max_val
+                normalized_str = "norm"
+            else:
+                normalized_str = ""
+                vmax = None
+
+            if label:
+                label_str = "+ve frames"
+            else:
+                label_str = "-ve frames"
+
+            sns.heatmap(util_matrix[label], ax=ax, cmap="BuPu", vmin=0, vmax=vmax)
+
+            plot_label = "%s ; %s ; %d samples"%(label_str, normalized_str, total_matrix[label])
+            ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
+            idx += 1
+
+    filter_info = "_"
+    if filter_color:
+        filter_info += "%s_%.2f"%(filter_color, filter_pixel_fraction)
+    fig.savefig(join(outdir, "sv_weight_heatmap_PF%s_BIN_%d_CROSSVIDEO.png"%(filter_info, final_bin_size)), bbox_inches="tight")
+
+def initialize_util_matrix(final_bin_size):
+    util_matrix = {True:[], False:[]}
+    for d in [True, False]:
+        for row in range(final_bin_size):
+            util_matrix[d].append([[] for i in range(final_bin_size)])
+    return util_matrix
+
 def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pixel_fraction, training_ratio, max_weight=None):
     if not validate_inputs(frame_dirs, bin_files):
         print ("Invalid input. Exiting")
@@ -96,11 +150,7 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
         
             # Initializing the utility matrix
             if util_matrix == None:
-                util_matrix = {True:[], False:[]}
-                for d in [True, False]:
-                    for row in range(final_bin_size):
-                        util_matrix[d].append([[] for i in range(final_bin_size)])
-
+                util_matrix = initialize_util_matrix(final_bin_size)
                 total_matrix = {True:0, False:0}
 
                 # Check that the final_bin_size is a factor of original bin size
@@ -122,53 +172,14 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
             frame_id += 1
 
     # Computing the average value for each bin
-    max_val = 0
     for l in util_matrix:
         for row in range(len(util_matrix[l])):
             for col in range(len(util_matrix[l][row])):
                 m = np.mean(util_matrix[l][row][col])
                 util_matrix[l][row][col] = m
-                max_val = max(max_val, m)
 
-    plt.close()
-    rows = 1
-    cols = 2
-    fig, axs = plt.subplots(rows, cols, figsize=(cols*4, rows*4))
-    idx = 0
-    for normalize in [True]:
-        for label in util_matrix:
-            row = int(idx / cols)
-            col = idx - row*cols
-            if rows > 1:
-                ax = axs[row][col]
-            else:
-                ax = axs[col]
-
-            if normalize:
-                if max_weight:
-                    vmax = max_weight
-                else:
-                    vmax = max_val
-                normalized_str = "norm"
-            else:
-                normalized_str = ""
-                vmax = None
-
-            if label:
-                label_str = "+ve frames"
-            else:
-                label_str = "-ve frames"
-
-            sns.heatmap(util_matrix[label], ax=ax, cmap="BuPu", vmin=0, vmax=vmax)
-
-            plot_label = "%s ; %s ; %d samples"%(label_str, normalized_str, total_matrix[label])
-            ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
-            idx += 1
-
-    filter_info = "_"
-    if filter_color:
-        filter_info += "%s_%.2f"%(filter_color, filter_pixel_fraction)
-    fig.savefig(join(outdir, "sv_weight_heatmap_PF%s_BIN_%d_CROSSVIDEO.png"%(filter_info, final_bin_size)), bbox_inches="tight")
+    # Plotting the SV heatmap
+    plot_sv_heatmap(util_matrix, total_matrix, max_weight, filter_color, filter_pixel_fraction, outdir, final_bin_size)
 
     # The second part of the script builds a utility model from the (s,v) 2D array
     combined_util_matrix = []
@@ -178,11 +189,51 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
             combined_util_matrix[row].append(util_matrix[True][row][col] - util_matrix[False][row][col])
 
     plot_sv_weight_heatmap.normalize_combined_util_matrix(combined_util_matrix)
+
+    # Now need to normalize the util matrix over training data
+    max_util = 0
+    for idx in range(len(frame_dirs)):
+        bin_file = bin_files[idx]
+        frame_dir = frame_dirs[idx]
+        video_name = basename(bin_file)[:-4]
+
+        # Extracting the features from training data samples
+        observations = python_server.mapping_features.read_training_file(bin_file, absolute_pixel_count=False)
+        training_samples = python_server.mapping_features.read_samples(bin_file)
+        num_frame_files = len([o for o in listdir(frame_dir) if isfile(join(frame_dir, o)) and o.startswith("frame_") and o.endswith(".txt")])
+        num_training_frames = int(training_ratio * num_frame_files)
+
+        # Iterating over the training part of each video
+        for frame_id in range(num_training_frames):
+            sample = training_samples[frame_id]
+            label = sample.label
+
+            # Determine if Pixel Fraction is higher than threshold
+            high_pf = plot_sv_weight_heatmap.is_pf_high(filter_color, filter_pixel_fraction, observations[frame_id])
+            sv_weights = plot_sv_weight_heatmap.read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
+            res = plot_sv_weight_heatmap.readjust_sv_weights(sv_weights)
+
+            if res == False or high_pf == False:
+                continue
+
+            aggr = plot_sv_weight_heatmap.aggregate_sv_weights(sv_weights, final_bin_size)
+
+            util = 0
+            for row in range(len(combined_util_matrix)):
+                for col in range(len(combined_util_matrix[row])):
+                    util += combined_util_matrix[row][col] * aggr[row][col]
+            max_util = max(util, max_util)
+
+    util_amplification_factor = 1.0/max_util
+    print (util_amplification_factor)
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            combined_util_matrix[row][col] *= util_amplification_factor
+
     raw_data = []
 
     for idx in range(len(frame_dirs)):
         bin_file = bin_files[idx]
-        print (bin_file)
         frame_dir = frame_dirs[idx]
         video_name = basename(bin_file)[:-4]
 
