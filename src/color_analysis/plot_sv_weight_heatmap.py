@@ -77,12 +77,41 @@ def readjust_sv_weights(sv):
 
     return True
 
+def is_pf_high(filter_color, filter_pixel_fraction, observation):
+    high_pf = True
+    if filter_color != None and filter_pixel_fraction != None:
+        feature_list = observation[0:-1]
+        color_position = COLORS.index(filter_color)
+        pixel_fraction = feature_list[color_position]
+        if pixel_fraction < filter_pixel_fraction:
+               high_pf = False
+    return high_pf
+
+def normalize_combined_util_matrix(combined_util_matrix):
+    # Normalize
+    min_val = 1.0
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            min_val = min(min_val, combined_util_matrix[row][col])
+    if min_val < 0:
+        for row in range(len(combined_util_matrix)):
+            for col in range(len(combined_util_matrix[row])):
+                combined_util_matrix[row][col] += (0 - min_val)
+    max_val = 0.0
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            max_val = max(max_val, combined_util_matrix[row][col])
+
+    for row in range(len(combined_util_matrix)):
+        for col in range(len(combined_util_matrix[row])):
+            combined_util_matrix[row][col] /= max_val
+
 def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel_fraction, max_weight):
     video_name = basename(bin_file)[:-4]
     util_matrix = None
     total_matrix = None
 
-            # Extracting the features from training data samples
+    # Extracting the features from training data samples
     observations = python_server.mapping_features.read_training_file(bin_file, absolute_pixel_count=False)
     training_samples = python_server.mapping_features.read_samples(bin_file)
 
@@ -94,16 +123,11 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
     frame_id = 0
     for sample in training_samples:
         label = sample.label
-        high_pf = True
-        if filter_color != None and filter_pixel_fraction != None:
-            observation = observations[frame_id]
-            feature_list = observation[0:-1]
-            color_position = COLORS.index(filter_color)
-            pixel_fraction = feature_list[color_position]
-            if pixel_fraction < filter_pixel_fraction:
-                high_pf = False
-
+        # Determine if Pixel Fraction is higher than threshold
+        high_pf = is_pf_high(filter_color, filter_pixel_fraction, observations[frame_id])
+        # Read the raw SV weights from frame directory
         sv_weights = read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
+        # Readjust the SV weights since we are not counting S=0 and V=0 pixels
         res = readjust_sv_weights(sv_weights)
 
         if res == False or high_pf == False:
@@ -125,6 +149,7 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
             if final_bin_size * q != orig_size:
                 print ("Final bin size %d is not a factor of original bin size %d"%(final_bin_size, orig_size))
 
+        # Aggregating the SV weights into the final SV bins
         aggr = aggregate_sv_weights(sv_weights, final_bin_size)
 
         # Now contributing to the average across frames
@@ -136,11 +161,11 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
 
         frame_id += 1
 
+    # Computing the average value for each bin
     max_val = 0
     for l in util_matrix:
         for row in range(len(util_matrix[l])):
             for col in range(len(util_matrix[l][row])):
-                #print (len(util_matrix[l][row][col]))
                 m = np.mean(util_matrix[l][row][col])
                 util_matrix[l][row][col] = m
                 max_val = max(max_val, m)
@@ -193,38 +218,15 @@ def main(frame_dir, bin_file, outdir, final_bin_size, filter_color, filter_pixel
         for col in range(len(util_matrix[True][row])):
             combined_util_matrix[row].append(util_matrix[True][row][col] - util_matrix[False][row][col])
 
-    # Normalize
-    min_val = 1.0
-    for row in range(len(combined_util_matrix)):
-        for col in range(len(combined_util_matrix[row])):
-            min_val = min(min_val, combined_util_matrix[row][col])
-    if min_val < 0:
-        for row in range(len(combined_util_matrix)):
-            for col in range(len(combined_util_matrix[row])):
-                combined_util_matrix[row][col] += (0 - min_val)
-    max_val = 0.0
-    for row in range(len(combined_util_matrix)):
-        for col in range(len(combined_util_matrix[row])):
-            max_val = max(max_val, combined_util_matrix[row][col])
-
-    for row in range(len(combined_util_matrix)):
-        for col in range(len(combined_util_matrix[row])):
-            combined_util_matrix[row][col] /= max_val
+    normalize_combined_util_matrix(combined_util_matrix)
 
     raw_data = []
     frame_id = 0
     for sample in training_samples:
         label = sample.label
 
-        high_pf = True
-        if filter_color != None and filter_pixel_fraction != None:
-            observation = observations[frame_id]
-            feature_list = observation[0:-1]
-            color_position = COLORS.index(filter_color)
-            pixel_fraction = feature_list[color_position]
-            if pixel_fraction < filter_pixel_fraction:
-                high_pf = False
-
+        # Determine if Pixel Fraction is higher than threshold
+        high_pf = is_pf_high(filter_color, filter_pixel_fraction, observations[frame_id])
         sv_weights = read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
         res = readjust_sv_weights(sv_weights)
 

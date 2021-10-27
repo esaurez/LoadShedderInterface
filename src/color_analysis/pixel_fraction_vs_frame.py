@@ -36,17 +36,11 @@ def main(training_data, outdir):
                     frame_id += 1
                     continue
                 # observation is in the form of [feat1, feat2, ..., featN, label]
-
                 feature_list = observation[0:-1]
                 label = observation[-1]
 
                 color_count = 0
                 for color in COLORS:
-                    #if color_count >= 3:
-                    #    break
-                    # Extracting the pixel fraction for color
-
-
                     color_position = COLORS.index(color)
                     pixel_fraction = feature_list[color_position]
 
@@ -86,7 +80,6 @@ def main(training_data, outdir):
             idx += 1
         fig.savefig(join(outdir, "pixel_fraction_vs_%s_abs_count_%s.png"%(video_file, str(abs_pixel_count))), bbox_inches="tight")
     
-       
     print ("Now plotting")
     upper_grouping = df.groupby(["absolute_pixel_count"])
     for upper_group_key in upper_grouping.groups.keys():
