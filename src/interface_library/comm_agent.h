@@ -9,12 +9,19 @@
 #include "mapping.capnp.h"
 #include "messages.capnp.h"
 
-class CommAgent {
+class AbstractCommAgent {
+public:
+    virtual ~AbstractCommAgent() = default;
+    virtual double getUtilityThreshold(float dropRatio, const std::string& mode = "max_cdf") = 0;
+    virtual double getUtilityValue(Features::Builder &utilityRequest, const std::string& mode = "max_cdf") = 0;
+};
+
+class CommAgent : public AbstractCommAgent{
 public:
     CommAgent(const std::string &serverUrl, std::shared_ptr<zmq::context_t> ctxPtr=nullptr);
     ~CommAgent();
-    double getUtilityThreshold(float dropRatio, const std::string &mode);
-    double getUtilityValue(Features::Builder &utilityRequest, const std::string &mode);
+    virtual double getUtilityThreshold(float dropRatio, const std::string& mode = "max_cdf") override;
+    virtual double getUtilityValue(Features::Builder &utilityRequest, const std::string& mode = "max_cdf") override;
 private:
     std::shared_ptr<zmq::context_t> ctx;
     std::unique_ptr<zmq::socket_t> sock;
