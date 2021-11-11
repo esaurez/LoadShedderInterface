@@ -278,17 +278,52 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
                 for col in range(len(combined_util_matrix[row])):
                     util += combined_util_matrix[row][col] * aggr[row][col]
 
+            count = 0
             if label:
                 label = 1
+                count = sample.detections.totalDetections
             else:
                 label = 0
-            raw_data.append([frame_id, label, util, video_name])
+            raw_data.append([frame_id, label, util, video_name, count])
             frame_id += 1
 
-    df = pd.DataFrame(raw_data, columns=["frame_id", "label", "util", "video_name"])
+    df = pd.DataFrame(raw_data, columns=["frame_id", "label", "util", "video_name", "count"])
     df.to_csv(join(outdir, "sv_utils_cross_video.csv"))
     max_util = df["util"].max()
     df["util"] = df["util"]/float(max_util)
+
+    plt.close()
+    fig, ax = plt.subplots()
+    sns.ecdfplot(data=df, x="util")
+    ax.set_xlabel("Utility of frame")
+    fig.savefig(join(outdir, "util_cdf_CROSSVIDEO.png"), bbox_inches="tight")
+
+    plt.close()
+    vid_grouping = df.groupby("video_name")
+    num_vids = len(df["video_name"].unique())
+    cols = 3
+    rows = math.ceil(num_vids/float(cols))
+    fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(24,8))
+    vid_idx = 0
+    for vid in vid_grouping.groups.keys():
+        vid_df = vid_grouping.get_group(vid)
+        row = int(vid_idx/cols)
+        col = vid_idx - row*cols
+        ax = axs[row][col]
+                
+        sns.lineplot(data=vid_df, x="frame_id", y="util", ax=ax, color="blue")
+        ax2 = ax.twinx()
+        sns.lineplot(data=vid_df, x="frame_id", y="count", ax=ax2, color="red")
+        ax.set_ylim([0, 1])
+        ax.set_title(vid, fontsize=10)
+        ax.set_ylabel("Frame utility")
+        ax.yaxis.label.set_color("blue")
+        ax2.set_ylabel("#target objects")
+        ax2.yaxis.label.set_color("red")
+    
+        vid_idx += 1
+    fig.savefig(join(outdir, "util_count.png"), bbox_inches="tight")
+
     plt.close()
     fig, ax = plt.subplots(figsize=(6,2))
     sns.boxplot(data=df, x="video_name", y="util", hue="label", ax=ax)
