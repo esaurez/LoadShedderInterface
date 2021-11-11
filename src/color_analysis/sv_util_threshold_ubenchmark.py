@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 import read_pixel_hsv_from_video
 import plot_sv_weight_heatmap
+import plot_sv_weight_heatmap_cross_video
 
 def read_frame_sv_weights(frame_file):
     sv = []
@@ -226,51 +227,17 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
         print ("Invalid input. Exiting")
         exit(1)
 
-    (util_matrix, total_matrix) = build_util_matrix(frame_dirs, bin_files, final_bin_size, filter_color, filter_pixel_fraction, training_ratio, max_weight)
+    (util_matrix, total_matrix) = plot_sv_weight_heatmap_cross_video.build_util_matrix(frame_dirs, bin_files, final_bin_size, filter_color, filter_pixel_fraction, training_ratio, max_weight)
 
     # Plotting the SV heatmap
-    plot_sv_heatmap(util_matrix, total_matrix, max_weight, filter_color, filter_pixel_fraction, outdir, final_bin_size)
+    plot_sv_weight_heatmap_cross_video.plot_sv_heatmap(util_matrix, total_matrix, max_weight, filter_color, filter_pixel_fraction, outdir, final_bin_size)
 
     # The second part of the script builds a utility model from the (s,v) 2D array
-    combined_util_matrix = compute_combined_util_matrix(util_matrix)
-
-    plot_sv_weight_heatmap.normalize_combined_util_matrix(combined_util_matrix)
+    combined_util_matrix = plot_sv_weight_heatmap_cross_video.compute_combined_util_matrix(util_matrix)
 
     # Now need to normalize the util matrix over training data
-    max_util = 0
-    for idx in range(len(frame_dirs)):
-        bin_file = bin_files[idx]
-        frame_dir = frame_dirs[idx]
-        video_name = basename(bin_file)[:-4]
-
-        # Extracting the features from training data samples
-        observations = python_server.mapping_features.read_training_file(bin_file, absolute_pixel_count=False)
-        training_samples = python_server.mapping_features.read_samples(bin_file)
-        num_frame_files = len([o for o in listdir(frame_dir) if isfile(join(frame_dir, o)) and o.startswith("frame_") and o.endswith(".txt")])
-        num_training_frames = int(training_ratio * num_frame_files)
-
-        # Iterating over the training part of each video
-        for frame_id in range(num_training_frames):
-            sample = training_samples[frame_id]
-            label = sample.label
-
-            # Determine if Pixel Fraction is higher than threshold
-            high_pf = plot_sv_weight_heatmap.is_pf_high(filter_color, filter_pixel_fraction, observations[frame_id])
-            sv_weights = plot_sv_weight_heatmap.read_frame_sv_weights(join(frame_dir, "frame_%d.txt"%frame_id))
-            res = plot_sv_weight_heatmap.readjust_sv_weights(sv_weights)
-
-            if res == False or high_pf == False:
-                continue
-
-            aggr = plot_sv_weight_heatmap.aggregate_sv_weights(sv_weights, final_bin_size)
-
-            util = 0
-            for row in range(len(combined_util_matrix)):
-                for col in range(len(combined_util_matrix[row])):
-                    util += combined_util_matrix[row][col] * aggr[row][col]
-            max_util = max(util, max_util)
-
-    util_amplification_factor = 1.0/max_util
+    plot_sv_weight_heatmap.normalize_combined_util_matrix(combined_util_matrix) 
+    util_amplification_factor = plot_sv_weight_heatmap_cross_video.compute_util_amplification_factor(combined_util_matrix, frame_dirs, bin_files, final_bin_size, filter_color, filter_pixel_fraction, training_ratio, max_weight)
     print (util_amplification_factor)
     for row in range(len(combined_util_matrix)):
         for col in range(len(combined_util_matrix[row])):
@@ -319,6 +286,7 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
             frame_id += 1
 
     df = pd.DataFrame(raw_data, columns=["frame_id", "label", "util", "video_name"])
+    df.to_csv(join(outdir, "sv_utils_cross_video.csv"))
     max_util = df["util"].max()
     df["util"] = df["util"]/float(max_util)
     plt.close()
