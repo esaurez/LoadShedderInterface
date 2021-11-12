@@ -325,6 +325,34 @@ def main(frame_dirs, bin_files, outdir, final_bin_size, filter_color, filter_pix
     fig.savefig(join(outdir, "util_count.png"), bbox_inches="tight")
 
     plt.close()
+    fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(24,8))
+    vid_idx = 0
+    for vid in vid_grouping.groups.keys():
+        vid_df = vid_grouping.get_group(vid)
+        row = int(vid_idx/cols)
+        col = vid_idx - row*cols
+        ax = axs[row][col]
+          
+        neg_frames = [[], []]
+        pos_frames = [[], []]
+        for i, row in vid_df.iterrows():
+            if row["count"] == 0:
+                neg_frames[0].append(row["frame_id"])
+                neg_frames[1].append(row["util"])
+            else:
+                pos_frames[0].append(row["frame_id"])
+                pos_frames[1].append(row["util"])
+                  
+        ax.scatter(pos_frames[0], pos_frames[1], color="red", marker=".")
+        ax.scatter(neg_frames[0], neg_frames[1], color="blue", marker=".")
+        ax.set_ylim([0, 1])
+        ax.set_title(vid, fontsize=10)
+        ax.set_ylabel("Frame utility")
+    
+        vid_idx += 1
+    fig.savefig(join(outdir, "util_segregated.png"), bbox_inches="tight")
+
+    plt.close()
     fig, ax = plt.subplots(figsize=(6,2))
     sns.boxplot(data=df, x="video_name", y="util", hue="label", ax=ax)
     ax.set_xlabel("Label of the frame")
