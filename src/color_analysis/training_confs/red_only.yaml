@@ -1,0 +1,9 @@
+hue_bins:
+    -  ranges:
+            - start:    0 
+              end:      10
+            - start:    160
+              end:      180
+    -  ranges:
+            - start:    100
+              end:      120
