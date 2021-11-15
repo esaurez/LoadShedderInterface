@@ -10,7 +10,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
-from os.path import basename, join
+from os import listdir
+from os.path import basename, join, isdir, isfile
 import math
 import numpy as np
 
@@ -23,6 +24,13 @@ def aggregate_frame_hues(hues, hue_width):
         aggr[bin_idx] += hues[hue_idx]
     return aggr
 
+def get_video_files(training_dir):
+    files = []
+    dirs = [join(training_dir, o) for o in listdir(training_dir) if isdir(join(training_dir, o))]
+    for d in dirs:
+        files += [join(d, f) for f in listdir(d) if isfile(join(d, f)) and f.endswith(".bin")]
+    return files
+
 def main(training_data, outdir, pf_cutoff, hue_width):
     cross_video_bin_scores = {}
     plot_suffix = "pf_cutoff_%s_hue_bin_%s"%(str(pf_cutoff), str(hue_width))
@@ -30,7 +38,7 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     median_hues_aggr = {}
     sum_hues_aggr = {}
     colors = {True:"red", False:"blue"}
-    video_files = glob.glob(training_data+"/*.bin")
+    video_files = get_video_files(training_data)
     num_vids = len(video_files)
     cols = 3
     rows = math.ceil(num_vids/float(cols))
@@ -215,6 +223,8 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     X = [x[0]*hue_width for x in scores]
     Y = [x[1] for x in scores]
     plt.bar(X, Y, width=hue_width, edgecolor="black")
+    plt.xlabel("Hue")
+    plt.ylabel("Score of each Hue bin for given query")
     plt.xticks(X)
     plt.savefig(join(outdir, "cross_video_scores_%s.png"%plot_suffix), bbox_inches="tight")
 

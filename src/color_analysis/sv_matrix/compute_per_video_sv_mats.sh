@@ -1,4 +1,10 @@
-VIDEO_DIR=~/LoadShedderInterface/data/seed_videos
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters. You NEED to provide the training conf yaml."
+    exit
+fi
+
+TRAINING_CONF=$1
+VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 
 for vid in $(ls $VIDEO_DIR)
 do
@@ -14,7 +20,7 @@ do
 
     for bins in 8
     do
-        cmd="python3 extract_sv_matrix.py -F $frames -C ../training_confs/red_only.yaml -B $bin_file -O $vid_dir --bins $bins"
+        cmd="python3 extract_sv_matrix.py -F $frames -C $TRAINING_CONF -B $bin_file -O $vid_dir --bins $bins"
         $cmd
     done
 

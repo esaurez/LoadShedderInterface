@@ -1,6 +1,12 @@
 #!/bin/bash
 
-VIDEO_DIR=/home/surveillance/LoadShedderInterface/data/seed_videos
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters. You NEED to provide the training conf yaml."
+    exit
+fi
+
+TRAINING_CONF=$1
+VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 
 for color in red blue
 do

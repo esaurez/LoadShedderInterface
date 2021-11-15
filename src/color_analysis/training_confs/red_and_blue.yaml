@@ -1,4 +1,4 @@
-training_dir: /home/surveillance/LoadShedderInterface/data/seed_videos
+training_dir: /home/surveillance/LoadShedderInterface/data/red_and_blue
 training_split: 0.60
 
 hue_bins:
@@ -11,4 +11,4 @@ hue_bins:
     -  name: "blue"
        ranges:
             - start:    100
-              end:      120
+              end:      130
