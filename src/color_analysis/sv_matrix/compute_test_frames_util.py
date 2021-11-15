@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 max_frames=None
 
@@ -65,12 +66,37 @@ def dump_sv_mat(mat, outfile):
                 f.write("%f "%col)
             f.write("\n")
 
-def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
+def read_utils(util_files):
+    utils = []
+    for util_file in util_files:
+        U = [] # per file matrix
+        with open(util_file) as f:
+            for line in f.readlines():
+                U.append([])
+                s = line.split()
+                for x in s:
+                    U[-1].append(float(x))
+        utils.append(U)
+    return utils
+
+def compute_util(frame_mat, util_mat):
+    util = 0
+    for row in range(len(frame_mat)):
+        for col in range(len(frame_mat[row])):
+            util += frame_mat[row][col]*util_mat[row][col]
+    return util
+
+def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, vid_name):
+    utils = read_utils(util_files)
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
     with open(training_conf_file) as f:
         training_conf = yaml.load(f)
    
+    if len(util_files) != len(training_conf["hue_bins"]):
+        print ("Mismatch between num util files provided (%d) and num colors in training conf (%d)"%(len(util_files), len(training_conf["hue_bins"])))
+        exit(1)
+
     # Creating the ProcessPoolExecutor
     executor = ProcessPoolExecutor(max_workers=4)
 
@@ -85,8 +111,8 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
 
     futures = []
     for frame_idx in range(len(frames)):
-        if frame_idx >= num_training_frames:
-            break
+        if frame_idx < num_training_frames:
+            continue
         frame = frames[frame_idx]
         future = executor.submit(get_sv_counts, frame, colors, num_bins)
         futures.append(future)
@@ -94,92 +120,29 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
         if max_frames != None and frame_idx > max_frames:
             break
 
+    frame_idx = num_training_frames
+    raw_data = []
     for f in futures:
+        label = ground_truth_frames[frame_idx].label
+        count = ground_truth_frames[frame_idx].detections.totalDetections
         mats_list = f.result()
         for color_idx in range(len(mats_list)):
-            sv_mat_list[color_idx].append(mats_list[color_idx])
-
-    for x in sv_mat_list:
-        print (len(x))
-
-    # Now aggregate the sv_mats over frames and labels
-    aggr_list_sv_mats = [{} for c in range(len(colors))]
-    aggr_sv_mats = [{} for c in range(len(colors))]
-    for color_idx in range(len(colors)):
-        for label in [True, False]:
-            aggr_list_sv_mats[color_idx][label] = [[[] for col in range(num_bins)] for row in range(num_bins)]
-            aggr_sv_mats[color_idx][label] = [[0 for col in range(num_bins)] for row in range(num_bins)]
-   
-    # TODO NUM BINS AND BIN SIZE SHOULD NOT BE EQUAL 
- 
-    for frame_idx in range(len(ground_truth_frames)):
-        if frame_idx >= num_training_frames:
-            break
-        if max_frames != None and frame_idx > max_frames:
-            break
-        label = ground_truth_frames[frame_idx].label
-        for color_idx in range(len(colors)):
-            frame_mat = sv_mat_list[color_idx][frame_idx]
-            for row in range(len(frame_mat)):
-                for col in range(len(frame_mat[row])):
-                    if frame_mat[row][col] > 0:
-                        aggr_list_sv_mats[color_idx][label][row][col].append(frame_mat[row][col])
-   
-    #for row in aggr_list_sv_mats[0][True]:
-    #    for x in row:
-    #        print (np.mean(x), " ", end="")
-    #    print ("")
- 
-    for color_idx in range(len(colors)):
-        for label in [True, False]:
-            for row in range(len(aggr_sv_mats[color_idx][label])):
-                for col in range(len(aggr_sv_mats[color_idx][label][row])):
-                    if len(aggr_list_sv_mats[color_idx][label][row][col]) == 0:
-                        aggr_sv_mats[color_idx][label][row][col] = 0
-                    else:
-                        aggr_sv_mats[color_idx][label][row][col] = np.mean(aggr_list_sv_mats[color_idx][label][row][col])
-
-    for color_idx in range(len(colors)):
-        color_name = colors[color_idx]["name"]
-        for label in [True, False]:
-            outfile = join(outdir, "sv_matrix_label_%s_BINS_%d_C_%s.txt"%(str(label), num_bins, color_name))
-            dump_sv_mat(aggr_sv_mats[color_idx][label], outfile)
-
-    plt.close()
-    rows = len(colors)
-    cols = 2
-    fig, axs = plt.subplots(rows, cols, figsize=(cols*4, rows*4))
-    idx = 0
-    for color_idx in range(len(colors)):
-        row = color_idx
-        labels = [True, False]
-        for label_idx in range(len(labels)):
-            col = label_idx
-            ax = axs[row][col]
-            label = labels[label_idx]
-
-            if label:
-                label_str = "+ve frames"
-            else:
-                label_str = "-ve frames"
-
-            sns.heatmap(aggr_sv_mats[color_idx][label], ax=ax, cmap="BuPu", vmin=0)
-
-            plot_label = "%s ; %s"%(str(colors[color_idx]["name"]), label_str)
-            ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
-            idx += 1
-
-    heatmap_filename = basename(bin_file)[:-4]
-    fig.savefig(join(outdir, "heatmap_%s_BINS_%d.png"%(heatmap_filename, num_bins)), bbox_inches="tight")
+            util = compute_util(mats_list[color_idx], utils[color_idx])
+            raw_data.append([colors[color_idx]["name"], count, label, frame_idx, util, vid_name])
+        frame_idx += 1
+    df = pd.DataFrame(raw_data, columns=["color", "count", "label", "frame_id", "utility", "vid_name"])
+    df.to_csv(join(outdir, "frame_utils.csv"))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyzing the distribution of Pixel Fraction")
     parser.add_argument("-F", dest="frame_dir", help="Path to directory containing hsv for each frame")
     parser.add_argument("-B", dest="bin_file", help="Path to bin file")
+    parser.add_argument("-V", dest="vid_name", help="Name of video")
     parser.add_argument("-C", dest="training_conf", help="Path to the training conf yaml")
     parser.add_argument("-O", dest="outdir", help="Path to output directory")
     parser.add_argument("--bins", dest="num_bins", help="Number of bins", type=int, default=16)
+    parser.add_argument("--util-files", dest="util_files", nargs="*", help="Util files. Should be in the same order as colors in training conf")
 
     args = parser.parse_args()
-    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir)
+    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.util_files, args.vid_name)
 

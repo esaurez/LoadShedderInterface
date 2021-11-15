@@ -3,7 +3,6 @@ VIDEO_DIR=~/LoadShedderInterface/data/seed_videos
 for vid in $(ls $VIDEO_DIR)
 do
     vid_dir=$VIDEO_DIR/$vid
-    echo $vid
 
     cd $vid_dir
     tar -xf frames.tar.gz
@@ -14,11 +13,9 @@ do
 
     for bins in 8
     do
-        cmd="python3 extract_sv_matrix.py -F $frames -C ../training_confs/red_only.yaml -B $bin_file -O $vid_dir --bins $bins"
+        cmd="python3 compute_test_frames_util.py -F $frames -C ../training_confs/red_only.yaml -B $bin_file -O $vid_dir --bins $bins --util-files utils_red_BINS_${bins}.txt utils_blue_BINS_${bins}.txt -V $vid"
         $cmd
     done
-
-    cp $vid_dir/heatmap*.png ./plots/
 
     rm -r $vid_dir/frames
 
