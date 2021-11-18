@@ -40,6 +40,32 @@ struct FullHistogram{
   histo @0 :Histogram;
 } 
 
+struct SaturationHistogram
+{
+  counts @0 :List(UInt64);
+}
+
+struct ValueHistogram
+{
+  valueBins @0 :List(SaturationHistogram);
+}
+
+struct CRange{
+  hueBegin @0 :UInt8;
+  hueEnd @1 :UInt8;
+}
+
+struct ColorDescription{
+  ranges @0 :List(CRange);
+}
+
+struct HsvHistogram{
+  colorHistograms @0 :List(ValueHistogram);
+  binSize @1 :UInt8;
+  totalCountedPixels @2 :UInt64;
+  colorRanges @3 :List(ColorDescription);
+} 
+
 struct BlobHistogram{
   histo @0 :Histogram;
   contour @1 :Contour;
@@ -61,6 +87,7 @@ struct Feature{
     fullColorHistogram @2;
     perBlobColorHistogram @3;
     detections @4;
+    hsvHistogram @5;
   }
   type @0 :Type;
   feat :union {
@@ -69,6 +96,7 @@ struct Feature{
     wholeHisto @3 :FullHistogram;
     blobHisto @4 :List(BlobHistogram);
     detections @5 :List(FeatDetection);
+    hsvHisto @6 :HsvHistogram;
   }
 }
 
