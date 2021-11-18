@@ -1,7 +1,7 @@
 import argparse
 import os, sys
 script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, os.path.join(script_dir, "../"))
+sys.path.insert(0, os.path.join(script_dir, "../../"))
 import model.build_model
 import python_server.mapping_features
 import pandas as pd
@@ -52,7 +52,10 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     for video_file in video_files:
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows == 1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
 
         hue_aggr = {True:None, False:None}
         vid_name = basename(video_file)[:-4]
@@ -122,7 +125,10 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     for vid in median_hues_aggr:
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows==1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
     
         for label in [False, True]:
             X = []
@@ -137,6 +143,7 @@ def main(training_data, outdir, pf_cutoff, hue_width):
             ax.scatter(X, Y, marker=".", color=colors[label])
             ax.set_ylabel("Median PF")
             ax.set_xlabel("Hue value")
+            ax.set_title(vid)
         vid_idx += 1
     fig.savefig(join(outdir, "median_pixel_fractions_%s.png"%plot_suffix), bbox_inches="tight")
 
@@ -146,7 +153,10 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     for vid in sum_hues_aggr:
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows==1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
     
         for label in [True]:
             X = []
@@ -166,6 +176,7 @@ def main(training_data, outdir, pf_cutoff, hue_width):
             ax.bar(X, Y, color=colors[label], width=hue_width)
             ax.set_ylabel("Sum of PF")
             ax.set_xlabel("Hue value")
+            ax.set_title(vid)
         vid_idx += 1
     fig.savefig(join(outdir, "sum_pixel_fractions_%s.png"%plot_suffix), bbox_inches="tight")
 
@@ -175,9 +186,12 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     for vid in median_hues_aggr:
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows==1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
     
-        for label in [True]:
+        for label in [True,False]:
             X = []
             Y = []
        
@@ -185,11 +199,12 @@ def main(training_data, outdir, pf_cutoff, hue_width):
                 X.append(hue_bin*hue_width)
                 Y.append(len(median_hues[vid][label][hue_bin]))
 
-            ax.bar(X, Y, color=colors[label], width=hue_width)
-            #ax.scatter(X, Y, marker=".", color=colors[label])
+            #ax.bar(X, Y, color=colors[label], width=hue_width)
+            ax.scatter(X, Y, marker=".", color=colors[label])
             ax.set_ylabel("Count")
             ax.set_xlabel("Hue value")
             ax.set_xlim([0, 180])
+            ax.set_title(vid)
         vid_idx += 1
     fig.savefig(join(outdir, "count_pixel_fractions_%s.png"%plot_suffix), bbox_inches="tight")
 
@@ -199,7 +214,10 @@ def main(training_data, outdir, pf_cutoff, hue_width):
     for vid in median_hues_aggr:
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows==1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
     
         for label in [True]:
             X = []
@@ -214,6 +232,7 @@ def main(training_data, outdir, pf_cutoff, hue_width):
             ax.set_ylabel("Count")
             ax.set_xlabel("Hue value")
             ax.set_xlim([0, 180])
+            ax.set_title(vid)
         vid_idx += 1
     fig.savefig(join(outdir, "median_times_count_pixel_fractions_%s.png"%plot_suffix), bbox_inches="tight")
 

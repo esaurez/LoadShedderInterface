@@ -72,7 +72,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
         training_conf = yaml.load(f)
    
     # Creating the ProcessPoolExecutor
-    executor = ProcessPoolExecutor(max_workers=4)
+    executor = ProcessPoolExecutor(max_workers=32)
 
     colors = training_conf["hue_bins"]
     sv_mat_list = [[] for idx in range(len(colors))]

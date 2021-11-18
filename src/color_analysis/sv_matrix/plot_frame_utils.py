@@ -120,7 +120,8 @@ def main(util_files, outdir):
         ax2 = ax.twinx()
         sns.lineplot(data=vid_df, x="frame_id", y="count", ax=ax2, color="black")
         lim = 0.025
-        ax.set_ylim([-1*lim, lim])
+        ax.set_ylim([0, lim])
+        #ax.set_ylim([-1*lim/2, lim])
         ax.set_title(vid, fontsize=10)
         ax.set_ylabel("Frame utility")
         ax.yaxis.label.set_color("blue")
