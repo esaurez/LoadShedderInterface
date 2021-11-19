@@ -14,7 +14,7 @@ def get_share_of_useful_frames(video_path):
     except:
         print("problem in file: " + video_path)
 
-    # data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
+    data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
     useful_frames = data_frame[data_frame['useful_gt'] == True].count()['useful_gt']
     total_frames = data_frame.count()['useful_gt']
     
@@ -30,7 +30,7 @@ def get_false_negative_from_shed_data(video_path):
     except:
         print("problem in file: " + video_path)
 
-    # data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
+    data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
     number_of_shed_frames = data_frame[data_frame['shed_decision'] == True].count()['shed_decision']
 
     number_of_false_negatives = data_frame[
@@ -58,7 +58,7 @@ def get_false_negatives(video_path):
     except:
         print("problem in file: " + video_path)
 
-    # data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
+    data_frame["false_negatives"] = np.where(data_frame['shed_decision'] is True & data_frame['useful_gt'] is True, 1, 0)
     number_of_useful_frames = data_frame[data_frame['useful_gt'] == True].count()['useful_gt']
     number_of_false_negatives = data_frame[
         (data_frame['shed_decision'] == True) & (data_frame['useful_gt'] == True)].count()['useful_gt']

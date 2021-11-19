@@ -1,0 +1,9 @@
+num_bins: 8
+colors:
+    - name: "red"
+      hue_ranges: 
+        - start: 0
+          end: 10
+        - start: 170
+          end: 180
+      matrix_file: utils_red_BINS_8.txt
