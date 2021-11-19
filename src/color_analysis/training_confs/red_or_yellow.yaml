@@ -1,0 +1,14 @@
+training_dir: /home/surveillance/LoadShedderInterface/data/red_or_yellow
+training_split: 0.60
+
+hue_bins:
+    -  name: "red"
+       ranges:
+            - start:    0 
+              end:      10
+            - start:    160
+              end:      180
+    -  name: "yellow"
+       ranges:
+            - start:    30
+              end:      40
