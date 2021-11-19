@@ -22,20 +22,24 @@ def main(video_file, time_secs, outdir):
     target_frame_secs = time_secs
     frame_no = target_frame_secs/float(total_video_len_secs)
 
+    target_fps = 5
+    selectivity = int(fps/target_fps)
+
     vidcap.set(1, time_secs*fps)
     frames_read = 0
     ret, frame = vidcap.read()
     while ret:
-        if frames_read > 8*fps:
-            break
+        if frames_read % selectivity == 0:
+            print ("Read frame ", frames_read)
 
-        print ("Read frame ", frames_read)
+            ret, frame = vidcap.read()
 
-        ret, frame = vidcap.read()
-
-        cv2.imwrite(join(outdir, "frame_%d.jpg"%frames_read), frame)
+            cv2.imwrite(join(outdir, "frame_%d.jpg"%frames_read), frame)
 
         frames_read += 1
+
+        if frames_read > fps:
+            break
     vidcap.release()
 
 if __name__ == "__main__":

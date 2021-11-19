@@ -14,6 +14,7 @@ from capnp_serial import mapping_capnp,messages_capnp
 import model.build_model
 import mapping_features
 
+from model.sv_matrix_model import *
 
 class InterfaceReqHandler:
 
@@ -22,12 +23,7 @@ class InterfaceReqHandler:
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind("tcp://*:%s" % port)
 
-        config = ConfigObj(properties_file)
-       #featureCorrespondingBinSize = list(map(int, config["featureCorrespondingBinSize"]))
-        splitvalues = config["splitvalues"] 
-        generatedModelPath = config["generatedModelPath"]
-        #model.build_model.init_shedding(generatedModelPath, featureCorrespondingBinSize) 
-        model.build_model.init_shedding(generatedModelPath) # hsb
+        self.model = SVMatrixModel(properties_file)
 
     def run(self):
         while True:
@@ -49,13 +45,12 @@ class InterfaceReqHandler:
         return reply
 
     ## Stuttgart folks implement this function ##
-    def compute_util_threshold(self, drop_ratio, mode):
-        return model.build_model.get_utility_threshold(drop_ratio, mode) #! Returns two values now. First one is the threshold. 
+    def compute_util_threshold(self, drop_ratio):
+        return self.model.get_utility_threshold(drop_ratio)
 
     ## Stuttgart folks implement this function ##
     def compute_utility(self, features, mode):
-        featureList = mapping_features.map_features(features) # does only need the feature, not the HistogramBinSize any longer.
-        return model.build_model.get_utility(featureList, mode) # needs the mode now as second feature. Mode is written in the config file
+        return self.model.get_utility(features)
 
     def handle_util_threshold_req(self, util_threshold_req):
         drop_ratio = util_threshold_req.dropRatio
@@ -83,7 +78,6 @@ class InterfaceReqHandler:
         reply.init("utilityResponse")
         reply.utilityResponse.utility = utility
         return reply
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
