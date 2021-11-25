@@ -57,7 +57,7 @@ class InterfaceReqHandler:
         mode = util_threshold_req.mode
 
         # Function call to compute the util threshold for given drop ratio
-        util_threshold, th_ratio = self.compute_util_threshold(drop_ratio, mode)
+        util_threshold = self.compute_util_threshold(drop_ratio)
 
         reply = messages_capnp.UtilityMessage.new_message()
         reply.messageType = "utilityThresholdResponse"
