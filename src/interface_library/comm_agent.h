@@ -6,6 +6,7 @@
 #include <capnp/message.h>
 #include <capnp/serialize-packed.h>
 #include <memory>
+#include <mutex>
 #include "mapping.capnp.h"
 #include "messages.capnp.h"
 
@@ -23,6 +24,7 @@ public:
     virtual double getUtilityThreshold(float dropRatio, const std::string& mode = "max_cdf") override;
     virtual double getUtilityValue(Features::Builder &utilityRequest, const std::string& mode = "max_cdf") override;
 private:
+    std::mutex agentLock;
     std::shared_ptr<zmq::context_t> ctx;
     std::unique_ptr<zmq::socket_t> sock;
 };
