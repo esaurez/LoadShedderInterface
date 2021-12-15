@@ -9,7 +9,7 @@ from pandas import DataFrame
 import seaborn as sns
 import sys
 
-class Levels(enum):
+class Levels(Enum):
     SHEDDER = 1 
     FILTER = 2
     DETECTION = 3 
@@ -21,22 +21,23 @@ level_column = {Levels.SHEDDER: "Shedder", Levels.FILTER: "Filter", Levels.DETEC
 level_order = [level_column[Levels.SHEDDER],level_column[Levels.FILTER],level_column[Levels.DETECTION],level_column[Levels.DETECTION_FILTER],level_column[Levels.SINK]]
 
 def plot_e2e_latency(dataframe, axes):
-    ax = sns.lineplot(data=dataframe, x="sequence_id", y="total_latency")
+    ax = sns.lineplot(data=dataframe, x="Frame ID", y="Total Latency", ax=axes)
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
 
 def plot_e2e_types(dataframe, axes):
-    ax = sns.catplot(x="sequence_id", y="levels", data=datafarme, order=level_order, jitter=False)
+    #ax = sns.stripplot(data=dataframe, x="Frame ID", y="level", order=level_order, jitter=False, ax=axes)
+    ax = sns.stripplot(data=dataframe, x="Frame ID", y="End Node", ax=axes)
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
 
 def plot_e2e(dataframe):
     figure, axes = plt.subplots(2, 1, sharex=True, figsize=(6,10))
     #figure.suptitle('Big title for plot')
-    plot_e2e_latency(dataframe, axes[0,0])
-    plot_e2e_types(dataframe, axes[1,0])
-    plt.xticks(fontsize=24)
-    plt.yticks(fontsize=24)
+    plot_e2e_latency(dataframe, axes[0])
+    plot_e2e_types(dataframe, axes[1])
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.xlabel("Frame Id", size=24)
     #plt.ylabel("Average\nSpatial Alignment [%]", size=24)
     plt.savefig("e2e_latency_location.pdf", bbox_inches="tight")
@@ -47,19 +48,19 @@ def getUsefulValues(row):
     threshold = row['threshold']
     utility = row['utility']
     if not row["filter_begin"]:
-        latency = int(row["shedder_end"]) - int(row["shedder_begin"])/1000000
+        latency = (int(row["shedder_end"]) - int(row["shedder_begin"]))/1000000
         level = level_column[Levels.SHEDDER]
     elif not row["detection_begin"]:
-        latency = int(row["filter_end"]) - int(row["shedder_begin"])/1000000
+        latency = (int(row["filter_end"]) - int(row["shedder_begin"]))/1000000
         level = level_column[Levels.FILTER]
     elif not row["det_filter_begin"]:
-        latency = int(row["detection_end"]) - int(row["shedder_begin"])/1000000
+        latency = (int(row["detection_end"]) - int(row["shedder_begin"]))/1000000
         level = level_column[Levels.DETECTION]
     elif not row["det_sink_begin"]:
-        latency = int(row["det_filter_end"]) - int(row["shedder_begin"])/1000000
+        latency = (int(row["det_filter_end"]) - int(row["shedder_begin"]))/1000000
         level = level_column[Levels.DETECTION_FILTER]
     else:
-        latency = int(row["det_sink_end"]) - int(row["shedder_begin"])/1000000
+        latency = (int(row["det_sink_end"]) - int(row["shedder_begin"]))/1000000
         level = level_column[Levels.SINK]
     return latency,level,threshold,utility
 
@@ -71,8 +72,8 @@ def get_dataframe(csv_file, video):
         for row in reader:
             if video == row['video']:
                 latency,level, threshold, utility  = getUsefulValues(row)
-                data.append([row["sequence_id"],latency, level, threshold, utility])
-        return DataFrame(data, columns=["sequence_id","total_latency", "level", "threshold", "utility"])
+                data.append([int(row["frame_id"]),latency, level, threshold, utility])
+        return DataFrame(data, columns=["Frame ID","Total Latency", "End Node", "threshold", "utility"])
 
 def main(csv_file, video):
     palette1 = sns.color_palette("colorblind", 8)
