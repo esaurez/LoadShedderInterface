@@ -21,7 +21,7 @@ level_column = {Levels.SHEDDER: "Shedder", Levels.FILTER: "Filter", Levels.DETEC
 level_order = [level_column[Levels.SHEDDER],level_column[Levels.FILTER],level_column[Levels.DETECTION],level_column[Levels.DETECTION_FILTER],level_column[Levels.SINK]]
 
 def plot_e2e_latency(dataframe, axes):
-    ax = sns.lineplot(data=dataframe, x="Frame ID", y="Total Latency", ax=axes)
+    ax = sns.lineplot(data=dataframe, x="Frame ID", y="Total Latency [ms]", ax=axes)
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
 
@@ -30,11 +30,7 @@ def plot_e2e_types(dataframe, axes):
     ax = sns.stripplot(data=dataframe, x="Frame ID", y="End Node", ax=axes)
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
-
-def plot_e2e(dataframe):
-    figure, axes = plt.subplots(2, 1, sharex=True, figsize=(6,10))
-    #figure.suptitle('Big title for plot')
-    plot_e2e_latency(dataframe, axes[0])
+def plot_e2e(dataframe): figure, axes = plt.subplots(2, 1, sharex=True, figsize=(6,10)) #figure.suptitle('Big title for plot')    plot_e2e_latency(dataframe, axes[0])
     plot_e2e_types(dataframe, axes[1])
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
@@ -72,8 +68,8 @@ def get_dataframe(csv_file, video):
         for row in reader:
             if video == row['video']:
                 latency,level, threshold, utility  = getUsefulValues(row)
-                data.append([int(row["frame_id"]),latency, level, threshold, utility])
-        return DataFrame(data, columns=["Frame ID","Total Latency", "End Node", "threshold", "utility"])
+                data.append([int(row["frame_id"]),latency, level, threshold, utility, row["shed_decision"])
+        return DataFrame(data, columns=["Frame ID","Total Latency [ms]", "End Node", "Threshold", "Utility","Shed Decision"])
 
 def main(csv_file, video):
     palette1 = sns.color_palette("colorblind", 8)
