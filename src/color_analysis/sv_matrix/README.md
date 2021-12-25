@@ -10,7 +10,7 @@ This Python script generates a file called `frame_utils.csv` inside each video d
 
 ## Computing utility CDF
 This is used for transforming Drop Rate into Utility Threshold.
-Currently the CDF is computed over all the videos in the dataset.
+Currently the CDF is computed over all the videos in the dataset and stored in the provided output directory. Along with it, per video CDF is also computed and stored in the directory of that video.
 
 `python3 compute_utils_cdf.py -C ../training_confs/red_only.yaml -O /tmp/`
 
