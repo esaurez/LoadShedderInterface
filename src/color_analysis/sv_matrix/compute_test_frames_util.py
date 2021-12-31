@@ -86,7 +86,7 @@ def compute_util(frame_mat, util_mat):
             util += frame_mat[row][col]*util_mat[row][col]
     return util
 
-def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, vid_name):
+def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, vid_name, all_frames):
     utils = read_utils(util_files)
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
@@ -111,7 +111,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, 
 
     futures = []
     for frame_idx in range(len(frames)):
-        if frame_idx < num_training_frames:
+        if (not all_frames) and frame_idx < num_training_frames:
             continue
         frame = frames[frame_idx]
         future = executor.submit(get_sv_counts, frame, colors, num_bins)
@@ -120,8 +120,9 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, 
         if max_frames != None and frame_idx > max_frames:
             break
 
-    frame_idx = num_training_frames
+    frame_idx = 0
     raw_data = []
+
     for f in futures:
         label = ground_truth_frames[frame_idx].label
         count = ground_truth_frames[frame_idx].detections.totalDetections
@@ -137,6 +138,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyzing the distribution of Pixel Fraction")
     parser.add_argument("-F", dest="frame_dir", help="Path to directory containing hsv for each frame")
     parser.add_argument("-B", dest="bin_file", help="Path to bin file")
+    parser.add_argument("-A", dest="all_frames", help="Process all frames in video, not just testing frames", action="store_true", default=False)
     parser.add_argument("-V", dest="vid_name", help="Name of video")
     parser.add_argument("-C", dest="training_conf", help="Path to the training conf yaml")
     parser.add_argument("-O", dest="outdir", help="Path to output directory")
@@ -144,5 +146,5 @@ if __name__ == "__main__":
     parser.add_argument("--util-files", dest="util_files", nargs="*", help="Util files. Should be in the same order as colors in training conf")
 
     args = parser.parse_args()
-    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.util_files, args.vid_name)
+    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.util_files, args.vid_name, args.all_frames)
 

@@ -1,0 +1,8 @@
+training_dir: /home/surveillance/LoadShedderInterface/data/yellow_only_fixed_labels
+training_split: 0.6
+
+hue_bins:
+    -  name: "yellow"
+       ranges:
+            - start:    20
+              end:      40

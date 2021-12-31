@@ -114,13 +114,16 @@ def main(util_files, outdir):
         vid_df = vid_grouping.get_group(vid)
         row = int(vid_idx/cols)
         col = vid_idx - row*cols
-        ax = axs[row][col]
+        if rows == 1:
+            ax = axs[col]
+        else:
+            ax = axs[row][col]
 
         sns.lineplot(data=vid_df, x="frame_id", y="utility", ax=ax, color="blue", style="color")
         ax2 = ax.twinx()
         sns.lineplot(data=vid_df, x="frame_id", y="count", ax=ax2, color="black")
         lim = 0.025
-        ax.set_ylim([0, lim])
+        #ax.set_ylim([0, lim])
         #ax.set_ylim([-1*lim/2, lim])
         ax.set_title(vid, fontsize=10)
         ax.set_ylabel("Frame utility")
@@ -137,7 +140,10 @@ def main(util_files, outdir):
     fig, axs = plt.subplots(nrows=1, ncols=num_colors, figsize=(24,8))
     color_idx = 0
     for color in color_grouping.groups.keys():
-        ax = axs[color_idx]
+        if num_colors==1:
+            ax = axs
+        else:
+            ax = axs[color_idx]
         gdf = color_grouping.get_group(color)
         sns.boxplot(data=gdf, x="vid_name", y="utility", hue="label", ax=ax)
         ax.set_xlabel("Label of the frame")
