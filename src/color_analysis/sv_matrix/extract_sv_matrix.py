@@ -155,7 +155,10 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
         labels = [True, False]
         for label_idx in range(len(labels)):
             col = label_idx
-            ax = axs[row][col]
+            if rows  == 1:
+                ax = axs[col]
+            else:
+                ax = axs[row][col]
             label = labels[label_idx]
 
             if label:

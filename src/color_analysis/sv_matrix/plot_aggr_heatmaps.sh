@@ -8,7 +8,7 @@ fi
 TRAINING_CONF=$1
 VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 
-for color in red blue
+for color in yellow #red blue # TODO Read this from the training conf directly
 do
     for bins in 8 #4 16
     do
