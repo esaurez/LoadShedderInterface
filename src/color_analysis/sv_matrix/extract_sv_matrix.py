@@ -69,7 +69,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir):
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
     with open(training_conf_file) as f:
-        training_conf = yaml.load(f)
+        training_conf = yaml.safe_load(f)
    
     # Creating the ProcessPoolExecutor
     executor = ProcessPoolExecutor(max_workers=32)

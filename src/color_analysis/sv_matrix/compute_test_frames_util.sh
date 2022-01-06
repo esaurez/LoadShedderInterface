@@ -3,6 +3,8 @@ if [ "$#" -ne 1 ]; then
     exit
 fi
 
+source ~/venv/bin/activate
+
 TRAINING_CONF=$1
 VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 

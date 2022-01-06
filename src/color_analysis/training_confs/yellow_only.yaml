@@ -1,8 +1,8 @@
-training_dir: /home/surveillance/LoadShedderInterface/data/yellow_only
+training_dir: /home/cetus/LoadShedderInterface/data/yellow_only
 training_split: 0.6
 
 hue_bins:
     -  name: "yellow"
        ranges:
             - start:    20
-              end:      40
+              end:      30

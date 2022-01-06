@@ -1,5 +1,5 @@
-training_dir: /home/surveillance/LoadShedderInterface/data/seed_videos
-training_split: 60.0
+training_dir: /home/cetus/LoadShedderInterface/data/seed_videos
+training_split: 0.6
 
 hue_bins:
     -  name: "red"

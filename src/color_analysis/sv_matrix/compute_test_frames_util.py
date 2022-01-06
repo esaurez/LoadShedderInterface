@@ -91,7 +91,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, util_files, 
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
     with open(training_conf_file) as f:
-        training_conf = yaml.load(f)
+        training_conf = yaml.safe_load(f)
    
     if len(util_files) != len(training_conf["hue_bins"]):
         print ("Mismatch between num util files provided (%d) and num colors in training conf (%d)"%(len(util_files), len(training_conf["hue_bins"])))
