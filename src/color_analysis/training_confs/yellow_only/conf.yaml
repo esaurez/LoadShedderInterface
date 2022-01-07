@@ -1,5 +1,7 @@
 training_dir: /home/cetus/LoadShedderInterface/data/yellow_only
 training_split: 0.6
+color_names: yellow
+num_bins: 8
 
 hue_bins:
     -  name: "yellow"

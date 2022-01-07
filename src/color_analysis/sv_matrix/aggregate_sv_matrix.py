@@ -59,7 +59,7 @@ def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
     with open(join(outdir, "utils_%s_BINS_%d.txt"%(color, num_bins)), "w") as f:
         for row in range(num_bins):
             for col in range(num_bins):
-                f.write("%f "%((aggr[True][row][col] - aggr[False][row][col])))
+                f.write("%f "%(aggr[True][row][col]))
             f.write("\n")
 
 if __name__ == "__main__":
