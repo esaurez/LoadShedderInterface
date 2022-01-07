@@ -12,10 +12,11 @@ import python_server.mapping_features
 def main(bin_file, outdir, high_hue, low_hue, pf_cutoff):
     vid_name = basename(bin_file)[:-4]
     X = []
-    Y = []
     cutoff_frames = []
     # Extracting the features from training data samples
     observations = python_server.mapping_features.read_samples(bin_file)
+    positives = [[], []]
+    negatives = [[], []]
     for frame_idx in range(len(observations)):
         frame = observations[frame_idx]
         label = frame.label
@@ -26,13 +27,19 @@ def main(bin_file, outdir, high_hue, low_hue, pf_cutoff):
         for h in range(low_hue, high_hue+1):
             hue_pixels += hues[h]
         pf = hue_pixels/total_pixels
-        X.append(frame_idx)
-        Y.append(pf)
+        if label:
+            positives[0].append(frame_idx)
+            positives[1].append(pf)
+        else:
+            negatives[0].append(frame_idx)
+            negatives[1].append(pf)
 
         if pf_cutoff != None and pf >= pf_cutoff:
             cutoff_frames.append((frame_idx, pf))
     
-    plt.plot(X, Y)
+    plt.scatter(positives[0], positives[1], label="+ve", s=1)
+    plt.scatter(negatives[0], negatives[1], label="-ve", s=1)
+    plt.legend()
     plt.xlabel("Frame ID")
     plt.ylabel("Pixel Fraction for Hue in [%d, %d]"%(low_hue, high_hue))
     plt.savefig(join(outdir, "hue_pf_%s_L_%d_H_%d.png"%(vid_name, low_hue, high_hue)), bbox_inches="tight")

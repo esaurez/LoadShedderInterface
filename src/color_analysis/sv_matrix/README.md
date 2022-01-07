@@ -8,7 +8,10 @@ This computation is embarassingly parallel, so high number of cores on the machi
 ---
 
 ## Compute the SV Matrix of videos
+`./compute_per_video_sv_mats.sh ../training_confs/red_only.yaml`
 
+## Aggregate the SV Matrix of videos to build the model
+`./plot_aggr_heatmaps.sh ../training_confs/red_only.yaml`
 
 ## Computing utility of test frames
 
