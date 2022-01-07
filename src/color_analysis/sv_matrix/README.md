@@ -1,3 +1,5 @@
+# Using Saturation and Value for utility function
+
 ## Extract the frames of each video
 `~/LoadShedderInterface/src/color_analysis/extract_per_frame_hsv.sh <training-conf>`
 This script will process each video one by one. For each video, it translated each frame into a file containing a list of HSV values. The files corresponding to all frames of a given video are stores as `frames.tar.gz` in the directory of the video's data.
