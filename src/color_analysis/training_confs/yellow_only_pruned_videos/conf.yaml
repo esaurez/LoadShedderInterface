@@ -1,0 +1,10 @@
+training_dir: /home/cetus/LoadShedderInterface/data/yellow_only_pruned_videos
+training_split: 0.6
+num_bins: 8
+color_names: "yellow"
+
+hue_bins:
+    -  name: "yellow"
+       ranges:
+            - start:    20
+              end:      30

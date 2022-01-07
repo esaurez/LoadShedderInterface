@@ -4,8 +4,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
+from os.path import join
 
-def main(color, num_bins, positive_sv_mats, negative_sv_mats):
+def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
     max_val = 0
     per_label_max = {True: 0, False: 0}
     sv_mats = {True: positive_sv_mats, False: negative_sv_mats}
@@ -52,10 +53,10 @@ def main(color, num_bins, positive_sv_mats, negative_sv_mats):
         plot_label = "%s ; %s"%(color, label_str)
         ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
 
-    fig.savefig("heatmap_%s_BINS_%d.png"%(color, num_bins), bbox_inches="tight")
+    fig.savefig(join(outdir, "heatmap_%s_BINS_%d.png"%(color, num_bins)), bbox_inches="tight")
 
     # Dump the utility heatmap
-    with open("utils_%s_BINS_%d.txt"%(color, num_bins), "w") as f:
+    with open(join(outdir, "utils_%s_BINS_%d.txt"%(color, num_bins)), "w") as f:
         for row in range(num_bins):
             for col in range(num_bins):
                 f.write("%f "%((aggr[True][row][col] - aggr[False][row][col])))
@@ -67,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("-B", dest="num_bins", help="Number of bins in SV mats being aggregated", type=int)
     parser.add_argument("-P", dest="positive_sv_mats", help="SV Mats", nargs="+")
     parser.add_argument("-N", dest="negative_sv_mats", help="SV Mats", nargs="+")
+    parser.add_argument("-O", dest="outdir", help="Output directory to store the utility matrix")
     args = parser.parse_args()
 
-    main(args.color, args.num_bins, args.positive_sv_mats, args.negative_sv_mats)
+    main(args.color, args.num_bins, args.positive_sv_mats, args.negative_sv_mats, args.outdir)

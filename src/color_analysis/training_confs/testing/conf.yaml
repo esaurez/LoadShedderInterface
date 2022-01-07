@@ -1,5 +1,7 @@
-training_dir: /home/cetus/LoadShedderInterface/data/yellow_only_pruned_videos
+training_dir: /home/cetus/LoadShedderInterface/data/testing
 training_split: 0.6
+num_bins: 8
+color_names: yellow 
 
 hue_bins:
     -  name: "yellow"

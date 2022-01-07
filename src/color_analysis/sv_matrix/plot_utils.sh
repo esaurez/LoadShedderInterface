@@ -1,11 +1,11 @@
 if [ "$#" -ne 1 ]; then
-    echo "Illegal number of parameters. You NEED to provide the training conf yaml."
+    echo "Illegal number of parameters. You NEED to provide the training conf direcotry."
     exit
 fi
 
 source ~/venv/bin/activate
 
-TRAINING_CONF=$1
+TRAINING_CONF=$1/conf.yaml
 VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 TRAINING_SPLIT=$(cat $TRAINING_CONF | grep training_split | awk -F ":" '{print $2}')
 

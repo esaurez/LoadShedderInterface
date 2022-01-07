@@ -1,21 +1,20 @@
 #!/bin/bash
 
 if [ "$#" -ne 1 ]; then
-    echo "Illegal number of parameters. You NEED to provide the training conf yaml."
+    echo "Illegal number of parameters. You NEED to provide the training conf directory."
     exit
 fi
 
 source ~/venv/bin/activate
 
-TRAINING_CONF=$1
+TRAINING_CONF=$1/conf.yaml
 VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
+NUM_BINS=$(python3 parse_yaml.py $TRAINING_CONF num_bins)
+COLORS=$(python3 parse_yaml.py $TRAINING_CONF color_names)
 
-for color in yellow #red blue # TODO Read this from the training conf directly
+for color in $COLORS 
 do
-    for bins in 8 #4 16
-    do
-        neg=$(find $VIDEO_DIR -name "sv_matrix_label_False_BINS_${bins}_C_${color}.txt")
-        pos=$(find $VIDEO_DIR -name "sv_matrix_label_True_BINS_${bins}_C_${color}.txt")
-        python3 aggregate_sv_matrix.py -C $color -B $bins -P $pos -N $neg
-    done
+        neg=$(find $VIDEO_DIR -name "sv_matrix_label_False_BINS_${NUM_BINS}_C_${color}.txt")
+        pos=$(find $VIDEO_DIR -name "sv_matrix_label_True_BINS_${NUM_BINS}_C_${color}.txt")
+        python3 aggregate_sv_matrix.py -C $color -B $NUM_BINS -P $pos -N $neg -O $1/
 done
