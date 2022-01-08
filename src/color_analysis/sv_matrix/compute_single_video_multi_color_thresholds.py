@@ -98,7 +98,7 @@ def plot_utils(color_utils, max_utils, colors):
     ax.set_xlabel("Frames")
     ax.set_ylabel("Utility")
     fig.legend()
-    fig.savefig("utilities,png")
+    fig.savefig("utilities.png")
 
 def main(frame_utils, training_fraction, drop_ratios, colors):
     max_utils = []
