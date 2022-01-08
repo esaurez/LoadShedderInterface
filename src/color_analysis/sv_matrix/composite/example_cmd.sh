@@ -1,0 +1,1 @@
+python3 composite/compose_single_color_models.py -C ../training_confs/red_only/ ../training_confs/yellow_only_pruned_videos/ -V /home/cetus/LoadShedderInterface/data/seed_videos/seed10484-1-train-or-red/ /home/cetus/LoadShedderInterface/data/yellow_only_pruned_videos/seed10484-1-train --composite-or -O /home/cetus/LoadShedderInterface/src/models/sv_matrix/red_or_yellow -T 0.6

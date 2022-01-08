@@ -16,8 +16,17 @@ class SVMatrixModel(UtilityModel):
         with open(join(model_path, "model_config.yaml")) as f:
             self.config_data = yaml.safe_load(f)
 
-        self.colors = []
+        self.colors = [] # one entry for every color
         self.num_bins = self.config_data["num_bins"]
+        self.util_cdf = []
+
+        self.is_composite = False
+        self.composite_or = False
+        if "composition" in self.config_data:
+            self.is_composite = True
+            if self.config_data["composition"] == "OR":
+                self.composite_or = True
+                # The only other possibility is AND
 
         for color in self.config_data["colors"]:
             mat_file = color["matrix_file"]
@@ -31,14 +40,13 @@ class SVMatrixModel(UtilityModel):
 
             self.colors.append((range_limits, self.read_mat_file(join(model_path, mat_file))))
 
-        self.util_cdf = []
         with open(join(model_path, "util_cdf.txt")) as f:
             for line in f.readlines():
                 s = line.split()
                 drop_rate = float(s[0])
                 util = float(s[1])
                 self.util_cdf.append((drop_rate, util))
-    
+
     def read_mat_file(self, mat_file):
         mat = []
         with open(mat_file) as f:
@@ -102,16 +110,29 @@ class SVMatrixModel(UtilityModel):
 
         return util
 
+    # This is called from the Python server
     def get_utility(self, features):
         hist = features.feats[0].feat.hsvHisto
         color_ranges = hist.colorRanges
         color_range_idx = 0
+
+        color_utils = [0 for c in self.colors] # utility value per color    
+
         for color_range in color_ranges:
             model_hue_idx = self.match_hue_in_model(color_range)
             if model_hue_idx != None:
-                return self.compute_utility_for_color(self.colors[model_hue_idx], hist.colorHistograms[color_range_idx])
-
+                util_value = self.compute_utility_for_color(self.colors[model_hue_idx], hist.colorHistograms[color_range_idx])
+                if self.is_composite:
+                    color_utils[model_hue_idx] = util_value
+                else:
+                    return util_value
             color_range_idx += 1
+
+        if self.is_composite:
+            if self.composite_or:
+                return max(color_utils)
+            else:
+                return min(color_utils)
 
     def get_utility_threshold(self, drop_rate):
         for idx in range(len(self.util_cdf)):

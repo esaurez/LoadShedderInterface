@@ -26,6 +26,7 @@ def aggr_and_write_utils(aggr_df, outdir):
 
     max_utils_df = pd.DataFrame(max_utils, columns=["frame_id", "vid_name", "utility", "label"])
 
+    plt.close()
     sns.ecdfplot(data=max_utils_df, x="utility")
     plt.savefig(join(outdir, "utils_cdf.png"), bbox_inches="tight")
 
