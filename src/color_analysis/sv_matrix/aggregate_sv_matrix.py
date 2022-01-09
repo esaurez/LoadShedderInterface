@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from os.path import join
 
-def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
+def aggregate(num_bins, positive_sv_mats, negative_sv_mats):
     max_val = 0
-    per_label_max = {True: 0, False: 0}
     sv_mats = {True: positive_sv_mats, False: negative_sv_mats}
 
     aggr = {}
@@ -32,7 +31,10 @@ def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
                 else:
                     aggr[label][row][col] = np.mean(aggr[label][row][col])
                     max_val = max(aggr[label][row][col], max_val)
-                    per_label_max[label] = max(per_label_max[label], aggr[label][row][col])
+    return aggr, max_val
+
+def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
+    aggr, max_val = aggregate(num_bins, positive_sv_mats, negative_sv_mats)
 
     plt.close()
     cols = 2

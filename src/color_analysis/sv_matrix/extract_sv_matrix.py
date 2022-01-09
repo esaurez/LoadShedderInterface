@@ -73,13 +73,16 @@ def dump_sv_mat(mat, outfile):
                 f.write("%f "%col)
             f.write("\n")
 
-def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, pf_threshold):
+def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, pf_threshold, training_split):
     # Reading information about the ground-truth of frames from the bin file
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
     with open(training_conf_file) as f:
         training_conf = yaml.safe_load(f)
    
+    if training_split == None:
+        training_split = training_conf["training_split"]
+
     # Creating the ProcessPoolExecutor
     executor = ProcessPoolExecutor(max_workers=32)
 
@@ -90,7 +93,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, pf_threshold
     frames = [join(frame_dir, f) for f in listdir(frame_dir) if isfile(join(frame_dir, f))]
     frames = sorted(frames, key = lambda x : int(basename(x)[:-4].split("_")[1])) # frame filenames should be "frame_<num>.txt"
 
-    num_training_frames = int(training_conf["training_split"]*len(frames))
+    num_training_frames = int(training_split*len(frames))
 
     futures = []
     for frame_idx in range(len(frames)):
@@ -195,7 +198,8 @@ if __name__ == "__main__":
     parser.add_argument("-O", dest="outdir", help="Path to output directory")
     parser.add_argument("--bins", dest="num_bins", help="Number of bins", type=int, default=16)
     parser.add_argument("--pf-threshold", dest="pf_threshold", help="Min fraction of pixels (with sat>0 or val>0) for frame to be considered for processing.", type=float, default=0.025)
+    parser.add_argument("--training-split", dest="training_split", help="Training split override.", type=float)
 
     args = parser.parse_args()
-    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.pf_threshold)
+    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.pf_threshold, args.training_split)
 
