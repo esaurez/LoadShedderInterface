@@ -1,4 +1,5 @@
 import argparse
+import yaml
 import os, sys
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.join(script_dir, "../"))
@@ -12,15 +13,9 @@ import seaborn as sns
 from os import listdir
 from os.path import basename, join, isfile, isdir
 
-def get_uniq_obj_file(files, vid_name):
-    for f in files:
-        if vid_name in f:
-            return f
-    return None
-
-def get_obj_times(uniq):
+def get_obj_frames(uniq):
     first_line = True
-    objs = []
+    result = {} # objID --> [list of frameIDs]
     with open(uniq) as f:
         for l in f.readlines():
             if first_line:
@@ -28,78 +23,84 @@ def get_obj_times(uniq):
                 continue
 
             s = l.split()
-            start_end = []
-            for idx in [1, 2]:
-                t = s[idx]
-                time_splits = t.split(":")
-                secs = int(time_splits[0])*60 + int(time_splits[1])
-                start_end.append(secs)
-            objs.append(start_end)
-    return objs
 
-def main(util_csv, util_threshold, video_dir, fps):
-    uniq_obj_files = [o for o in listdir(video_dir) if isfile(join(video_dir, o)) and o.endswith("_unique_objects.txt")]
-    util_df = pd.read_csv(util_csv)
-    video_name_grouping = util_df.groupby("video_name")
+            fidx = int(s[0])
+            objs = [int(s[i]) for i in range(1, len(s))]
+
+            for obj in objs:
+                if obj not in result:
+                    result[obj] = []
+                result[obj].append(fidx)
+    return result
+
+def main(training_conf, util_threshold):
+    with open(join(training_conf, "conf.yaml")) as f:
+        conf = yaml.safe_load(f)
+
+    training_dir = conf["training_dir"]
+    training_split = conf["training_split"]
+    vid_dirs = [join(training_dir, d) for d in listdir(training_dir) if isdir(join(training_dir, d))]
 
     aggr_total_objs = 0
     aggr_detected_objs = 0
 
     total_frames = 0
     frames_dropped = 0
-    for vid in video_name_grouping.groups.keys():
-        uniq_obj = get_uniq_obj_file(uniq_obj_files, vid)
-        if uniq_obj:
-            obj_times = get_obj_times(join(video_dir, uniq_obj))
+    for vid_dir in vid_dirs:
+        uniq_obj = join(vid_dir,  "unique_objs_per_frame.txt")
+        if not isfile(uniq_obj):
+            continue
+        util_df = pd.read_csv(join(vid_dir, "frame_utils.csv"))
+        num_frames = len(util_df)
+        num_training_frames = int(num_frames*training_split)
+        utils = []
+        for idx , row in util_df.iterrows():
+            utils.append(row["utility"])
 
-            frames = []
-            gdf = video_name_grouping.get_group(vid)
-            for idx, row in gdf.iterrows():
-                frames.append((row["frame_id"], row["label"], row["util"]))
-            min_frame_idx = min([f[0] for f in frames])
-            max_frame_idx = max([f[0] for f in frames])
+        total_frames += len(utils[:num_training_frames])
+        frames_dropped += len([f for f in utils[:num_training_frames] if f < util_threshold])
 
-            min_secs = min_frame_idx / fps
-            max_secs = max_frame_idx / fps
+        obj_frames = get_obj_frames(join(vid_dir, uniq_obj))
 
-            obj_covered = {}
-            for obj_idx in range(len(obj_times)):
-                s_e = obj_times[obj_idx]
-                start = s_e[0]
-                end = s_e[1]
+        obj_covered = {}
+        for obj in obj_frames:
+            obj_in_training_data = False
+            obj_found = False
+            frames = obj_frames[obj]
 
-                # Discarding all objects that were not covered in the utility file
-                if end <= min_secs or start >= max_secs:
-                    continue
+            for fidx in frames:
+                if fidx < num_training_frames:
+                    obj_in_training_data = True
 
-                obj_found = False
-                for (frame_idx, label, util) in frames:
-                    if frame_idx/fps >= start and frame_idx/fps <= end and util >= util_threshold:
-                        obj_found = True
+                if utils[fidx] >= util_threshold:
+                    obj_found = True
 
-                obj_covered[obj_idx] = obj_found
+            if not obj_in_training_data:
+                global_obj_id = vid_dir+str(obj)
+                obj_covered[global_obj_id] = obj_found
 
-                for (frame_idx, label, util) in frames:
-                    if util < util_threshold:
-                        frames_dropped += 1
-                    total_frames += 1
             
-            if len(obj_covered) != 0:
-                object_detection_rate = len([x for x in obj_covered if obj_covered[x] == True])/float(len(obj_covered))
-
-                aggr_total_objs += len(obj_covered)
-                aggr_detected_objs += len([x for x in obj_covered if obj_covered[x] == True])
+        if len(obj_covered) != 0:
+            object_detection_rate = len([x for x in obj_covered if obj_covered[x] == True])/float(len(obj_covered))
+    
+            aggr_total_objs += len(obj_covered)
+            aggr_detected_objs += len([x for x in obj_covered if obj_covered[x] == True])
 
     frame_drop_rate = frames_dropped/float(total_frames)
 
-    print (float(aggr_detected_objs)/aggr_total_objs, frame_drop_rate)
+    print ("%.5f\t%.3f\t%.3f"%(util_threshold, float(aggr_detected_objs)/aggr_total_objs, frame_drop_rate))
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyzing the distribution of Pixel Fraction")
-    parser.add_argument("-U", dest="util_csv", help="CSV containing the utility value for frames")
     parser.add_argument("-T", dest="util_threshold", type=float, help="Utility threshold")
-    parser.add_argument("-I", dest="video_dir", help="Directory containing *_unique_objects.txt files")
-    parser.add_argument("--fps", dest="fps", help="FPS of the bin file using with Util CSV has been calculated", type=int, required=True)
+    parser.add_argument("-C", dest="training_conf", help="Directory containing Training Conf")
 
     args = parser.parse_args()
-    main(args.util_csv, args.util_threshold, args.video_dir, args.fps)
+
+    util_thresholds = []
+    u = 0
+    while u <= 0.04:
+        util_thresholds.append(u)
+        main(args.training_conf, u)
+        u += 0.0005
+
 
