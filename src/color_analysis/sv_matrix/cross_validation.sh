@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ "$#" -ne 1 ]; then
-    echo "Illegal number of parameters. You NEED to provide the training conf directory."
+if [ "$#" -ne 2 ]; then
+    echo "Illegal number of parameters. You NEED to provide the training conf directory and dump dir."
     exit
 fi
 
@@ -11,9 +11,9 @@ TRAINING_CONF=$1/conf.yaml
 VIDEO_DIR=$(cat $TRAINING_CONF | grep training_dir | awk -F ":" '{print $2}')
 NUM_BINS=$(python3 parse_yaml.py $TRAINING_CONF num_bins)
 
-MATS=/tmp/mats
+MATS=$2
 
-PREPROCESS=1
+PREPROCESS=0
 
 if [[ $PREPROCESS = 1 ]]
 then
@@ -41,5 +41,5 @@ then
 fi
 
 # Step 2: Cross-validation training-testing
-python3 cross_validation_train_test.py -C $1 -M /tmp/mats 
+python3 cross_validation_train_test.py -C $1 -M $MATS
 

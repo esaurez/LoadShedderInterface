@@ -2,6 +2,7 @@ training_dir: /home/cetus/LoadShedderInterface/data/yellow_only_pruned_videos
 training_split: 0.6
 num_bins: 8
 color_names: yellow
+pf_threshold: 0.025
 
 hue_bins:
     -  name: "yellow"
