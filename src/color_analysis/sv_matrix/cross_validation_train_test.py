@@ -151,7 +151,7 @@ def main(training_conf_dir, mats_dir):
     thresholds = []
     obj_rates = []
     frame_rates = []
-    for util_threshold in np.arange(0, 0.04, 0.001):
+    for util_threshold in np.arange(0, 0.04, 0.0005):
         obj_rate, frame_rate = compute_object_metrics(training_dir, df, mats_dir, util_threshold)
         obj_rates.append(obj_rate)
         frame_rates.append(frame_rate)

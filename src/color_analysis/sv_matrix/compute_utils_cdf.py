@@ -45,24 +45,22 @@ def main(training_conf, outdir):
     with open(training_conf) as f:
         config = yaml.safe_load(f)
     video_dir = config["training_dir"]
+    training_split = config["training_split"]
     
     # Now get all the frame utility files
     video_dirs = [join(video_dir, o) for o in listdir(video_dir) if isdir(join(video_dir, o))]
-    util_csvs = []
+    dfs = []
     for vid_dir in video_dirs:
         try:
             df = pd.read_csv(join(vid_dir, "frame_utils.csv"))
+            num_train_frames = int(len(df)*training_split)
+            df = df[df["frame_id"]<num_train_frames]
             aggr_and_write_utils(df, vid_dir)
+            dfs.append(df)
         except:
             pass
-        util_csvs += [join(vid_dir, f) for f in listdir(vid_dir) if isfile(join(vid_dir, f)) and f=="frame_utils.csv"]
 
-    dfs = []
-    for util_csv in util_csvs:
-        df = pd.read_csv(util_csv)
-        dfs.append(df)
     aggr_df = pd.concat(dfs, ignore_index=True)
-
     aggr_and_write_utils(aggr_df, outdir)
 
 if __name__ == "__main__":
