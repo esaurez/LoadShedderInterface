@@ -10,7 +10,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
-from os.path import basename, join
+from os import listdir
+from os.path import basename, join, isdir, isfile
 import math
 
 # TODO : Fix this definition of colors everywhere. Centralize it in a constants.py file.
@@ -20,7 +21,15 @@ COLORS = ['red', 'orange','yellow','spring_green','green','ocean_green','light_b
 COLORS_TO_FILTER = ["red", "magenta", "blue", "green"]
 
 def main(training_data, outdir):
-    video_files = glob.glob(training_data+"/*.bin")
+    video_files = []
+    for vid_dir in listdir(training_data):
+        if not isdir(join(training_data, vid_dir)):
+            continue
+        D = join(training_data, vid_dir)
+        for f in listdir(D):
+            if isfile(join(D, f)) and f.endswith(".bin"):
+                video_files.append(join(D, f))
+    #video_files = glob.glob(training_data+"/*.bin")
     raw_values = [] # array to contain the raw values which will later be converted to dataframe
 
     video_file_idx = 0
@@ -117,7 +126,7 @@ def main(training_data, outdir):
             if absolute_pixel_count:
                 ax.set_ylabel("Absolute count of pixels")
             else:
-                ax.set_ylabel("Pixel Fraction\n(pixels of color / total pixels)")
+                ax.set_ylabel("Hue Fraction\n(pixels of given color / total pixels)")
             #ax.title.set_text("Abs pixel count = %s; Video File = %s"%(str(absolute_pixel_count), video_file))
 
             col += 1
