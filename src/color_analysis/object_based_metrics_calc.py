@@ -33,6 +33,26 @@ def get_obj_frames(uniq):
                 result[obj].append(fidx)
     return result
 
+def get_obj_coverage(obj_frames, frames_dropped, num_training_frames):
+    obj_covered = {}
+    for obj in obj_frames:
+        obj_in_training_data = False
+        obj_found = False
+        frames = obj_frames[obj]
+
+        for fidx in frames:
+            if fidx < num_training_frames:
+                obj_in_training_data = True
+
+            if not frames_dropped[fidx]:
+                obj_found = True
+
+        if not obj_in_training_data:
+            global_obj_id = str(obj)
+            obj_covered[global_obj_id] = obj_found
+
+    return obj_covered
+
 def main(training_conf, util_threshold):
     with open(join(training_conf, "conf.yaml")) as f:
         conf = yaml.safe_load(f)
@@ -61,25 +81,15 @@ def main(training_conf, util_threshold):
         frames_dropped += len([f for f in utils[:num_training_frames] if f < util_threshold])
 
         obj_frames = get_obj_frames(join(vid_dir, uniq_obj))
+        
+        is_frame_dropped = []
+        for idx in range(len(utils)):
+            if utils[idx] >= util_threshold:
+                is_frame_dropped.append(False)
+            else:
+                is_frame_dropped.append(True)
+        obj_covered = get_obj_coverage(obj_frames, is_frame_dropped, num_training_frames)
 
-        obj_covered = {}
-        for obj in obj_frames:
-            obj_in_training_data = False
-            obj_found = False
-            frames = obj_frames[obj]
-
-            for fidx in frames:
-                if fidx < num_training_frames:
-                    obj_in_training_data = True
-
-                if utils[fidx] >= util_threshold:
-                    obj_found = True
-
-            if not obj_in_training_data:
-                global_obj_id = vid_dir+str(obj)
-                obj_covered[global_obj_id] = obj_found
-
-            
         if len(obj_covered) != 0:
             object_detection_rate = len([x for x in obj_covered if obj_covered[x] == True])/float(len(obj_covered))
     

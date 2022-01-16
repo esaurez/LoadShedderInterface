@@ -38,8 +38,9 @@ def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
 
     plt.close()
     cols = 2
-    fig, axs = plt.subplots(1, cols, figsize=(cols*4, 1*4))
+    fig, axs = plt.subplots(1, cols, figsize=(cols*6, 1*4))
     labels = [True, False]
+    fontsize = 16
     for label_idx in range(len(labels)):
         col = label_idx
         ax = axs[col]
@@ -52,8 +53,11 @@ def main(color, num_bins, positive_sv_mats, negative_sv_mats, outdir):
 
         sns.heatmap(aggr[label], ax=ax, cmap="BuPu", vmin=0, vmax=max_val)
 
-        plot_label = "%s ; %s"%(color, label_str)
-        ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes)
+        ax.tick_params(axis='both', which='major', labelsize=fontsize)
+        ax.set_xlabel("Saturation bins", fontsize=fontsize)
+        ax.set_ylabel("Value bins", fontsize=fontsize)
+        plot_label = "%s ; %s"%(color.title(), label_str)
+        ax.text(.5,.9, plot_label, horizontalalignment='center', transform=ax.transAxes, fontsize=fontsize)
 
     fig.savefig(join(outdir, "heatmap_%s_BINS_%d.png"%(color, num_bins)), bbox_inches="tight")
 

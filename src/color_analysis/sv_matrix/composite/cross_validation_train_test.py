@@ -169,6 +169,7 @@ def main(training_conf_dirs, mats_dir, composite_or):
         merged_dfs.append(merged)
 
     df = pd.concat(merged_dfs, ignore_index=True)
+    df.to_csv(join(mats_dir, "frame_utils.csv"))
 
     plt.close()
     fig, ax = plt.subplots(figsize=(24,8))

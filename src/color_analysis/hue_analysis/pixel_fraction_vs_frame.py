@@ -1,13 +1,14 @@
 import argparse
 import os, sys
 script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, os.path.join(script_dir, "../"))
+sys.path.insert(0, os.path.join(script_dir, "../../"))
 import model.build_model
 import python_server.mapping_features
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontProperties
 import seaborn as sns
 import glob
 from os import listdir
@@ -18,7 +19,8 @@ import math
 # The main distribution of color values is in mapping_features file
 COLORS = ['red', 'orange','yellow','spring_green','green','ocean_green','light_blue','blue','purple','magenta']
 
-COLORS_TO_FILTER = ["red", "magenta", "blue", "green"]
+COLORS_TO_FILTER = ["red"]
+#COLORS_TO_FILTER = ["red", "magenta", "blue", "green"]
 
 def main(training_data, outdir):
     video_files = []
@@ -62,6 +64,7 @@ def main(training_data, outdir):
             # DataFrame to contain the aggregate data
     df = pd.DataFrame(raw_values, columns=["color", "pixel_fraction", "label", "frame_id", "video_file", "absolute_pixel_count"])
 
+    '''
     abs_grouping = df.groupby(["absolute_pixel_count", "video_file"])
     for key in abs_grouping.groups.keys():
         abs_gdf = abs_grouping.get_group(key)
@@ -88,11 +91,10 @@ def main(training_data, outdir):
             ax.set_xlabel("Frame ID (1 frame per second)")
             idx += 1
         fig.savefig(join(outdir, "pixel_fraction_vs_%s_abs_count_%s.png"%(video_file, str(abs_pixel_count))), bbox_inches="tight")
-    
+    '''
     print ("Now plotting")
     upper_grouping = df.groupby(["absolute_pixel_count"])
     for upper_group_key in upper_grouping.groups.keys():
-        print (upper_group_key)
         (absolute_pixel_count) = upper_group_key
         upper_group_df = upper_grouping.get_group(upper_group_key)
         grouping = upper_group_df.groupby(["color"])
@@ -112,22 +114,36 @@ def main(training_data, outdir):
         row = 0
         col = 0
         for key in grouping.groups.keys():
-            print (key)
             if rows == 1:
                 ax = axs[col]
             else:
                 ax = axs[row][col]
             (color) = key
             gdf = grouping.get_group(key)
+            gdf.loc[gdf.label == 0, "label"] = "-ve"
+            gdf.loc[gdf.label == 1, "label"] = "+ve"
             plt.close()
             sns.stripplot(data=gdf, x="video_file", y="pixel_fraction", hue="label", dodge=True, ax=ax)
-            ax.set_xlabel("Video file")
             ax.text(.5,.9, key, horizontalalignment='center', transform=ax.transAxes)
-            if absolute_pixel_count:
-                ax.set_ylabel("Absolute count of pixels")
-            else:
-                ax.set_ylabel("Hue Fraction\n(pixels of given color / total pixels)")
+            fig1, ax1 = plt.subplots(figsize=(9,3))
+            sns.stripplot(data=gdf, x="video_file", y="pixel_fraction", hue="label", dodge=True, ax=ax1)
+            fontsize = 16
+            fontP = FontProperties()
+            fontP.set_size(fontsize)
+            for axis in [ax, ax1]:
+                axis.set_xlabel("Video file", fontsize=fontsize)
+                if absolute_pixel_count:
+                    axis.set_ylabel("Absolute count of pixels", fontsize=fontsize)
+                else:
+                    axis.set_ylabel("Hue Fraction for %s"%(color.title()), fontsize=fontsize)
+                    #axis.set_ylabel("Hue Fraction for %s\n(num %s pixels / num foreground pixels)"%(color.title(), color), fontsize=fontsize)
+                axis.tick_params(axis='both', which='major', labelsize=fontsize)
+
+                legend = ax1.legend(fancybox=True,shadow=False,title='Frame label', prop=fontP, ncol=2)
+                plt.setp(legend.get_title(),fontsize=fontsize)
+
             #ax.title.set_text("Abs pixel count = %s; Video File = %s"%(str(absolute_pixel_count), video_file))
+            fig1.savefig(join(outdir, "huefrac_%s_scatter_abs_count_%s.png"%(color, str(absolute_pixel_count))), bbox_inches="tight")
 
             col += 1
             if col >= cols:
