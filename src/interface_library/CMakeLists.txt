@@ -28,9 +28,9 @@ add_executable(interface main.cpp ${SOURCE_FILES})
 ## add the include directory to our compile directives
 target_include_directories(loadshedinterface PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ZeroMQ_INCLUDE_DIR} ${CAPNPC_OUTPUT_DIR} ${CAPNP_INCLUDE_DIRS})
 ## at the 0mq library to our link directive
-target_link_libraries(loadshedinterface PUBLIC ${ZeroMQ_LIBRARY} mappingcap)
+target_link_libraries(loadshedinterface PUBLIC ${ZeroMQ_LIBRARY} messagescap)
 
 ## add the include directory to our compile directives
 target_include_directories(interface PUBLIC ${ZeroMQ_INCLUDE_DIR} ${CAPNPC_OUTPUT_DIR} ${CAPNP_INCLUDE_DIRS})
 ## at the 0mq library to our link directive
-target_link_libraries(interface PUBLIC ${ZeroMQ_LIBRARY} mappingcap)
+target_link_libraries(interface PUBLIC ${ZeroMQ_LIBRARY} messagescap)
