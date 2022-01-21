@@ -43,11 +43,17 @@ def main(training_conf, outdir, frame_utils):
     
     # Read the frame_utils.csv
     df = pd.read_csv(frame_utils)
-    utils_drop_rates = []
-    utils_obj_rates = []
-    for util_threshold in np.arange(0, 0.04, 0.001):
+    utils_drop_rates = {}
+    utils_obj_rates = {}
+    utils_target_drop_rates = {}
+    for drop_rate in drop_ratios:
+    #for util_threshold in np.arange(0, 0.04, 0.001):
         grouping = df.groupby("cv_fold")
         for group in grouping.groups.keys():
+            if group not in utils_drop_rates:
+                utils_drop_rates[group] = []
+                utils_obj_rates[group] = []
+                utils_target_drop_rates[group] = []
             total_frames = 0
             frames_dropped = 0
             total_objs = 0
@@ -59,17 +65,67 @@ def main(training_conf, outdir, frame_utils):
                 utils = []
                 for idx, row in gdf.iterrows():
                     utils.append(row["utility"])
-                is_frame_dropped = [u < util_threshold for u in utils]
+                # Calculate the utility threshold based on the drop rate
+                sorted_utils = sorted(utils)
+                util_threshold = sorted_utils[min(int(len(utils)*drop_rate), len(utils)-1)]
+                is_frame_dropped = [u <= util_threshold for u in utils]
                 if vid not in obj_frames:
                     continue
                 obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames[vid], is_frame_dropped, 0)
-                frames_dropped += len([u for u in utils if u < util_threshold])
+                frames_dropped += len([u for u in utils if u <= util_threshold])
                 total_frames += len(utils)
                 total_objs += len(obj_covered)
                 objs_detected += len([x for x in obj_covered if obj_covered[x]])
-            utils_drop_rates.append(frames_dropped/float(total_frames))
-            utils_obj_rates.append(objs_detected/float(total_objs))
+            utils_drop_rates[group].append(frames_dropped/float(total_frames))
+            utils_obj_rates[group].append(objs_detected/float(total_objs))
+            utils_target_drop_rates[group].append(drop_rate)
 
+    #twin_plot_data = []
+    #twin_plot_data.append((utils_drop_rates, utils_obj_rates, utils_target_drop_rates))
+
+    # Calculating for random
+    rand_utils_drop_rates = {}
+    rand_utils_obj_rates = {}
+    rand_utils_target_drop_rates = {}
+    for drop_rate in drop_ratios:
+        for trial in range(num_trials):
+            #for util_threshold in np.arange(0, 0.04, 0.001):
+            grouping = df.groupby("cv_fold")
+            for group in grouping.groups.keys():
+                if group not in rand_utils_drop_rates:
+                    rand_utils_drop_rates[group] = []
+                    rand_utils_obj_rates[group] = []
+                    rand_utils_target_drop_rates[group] = []
+                total_frames = 0
+                frames_dropped = 0
+                total_objs = 0
+                objs_detected = 0
+                cv_fold_gdf = grouping.get_group(group)
+                vid_group = cv_fold_gdf.groupby("vid_name")
+                for vid in vid_group.groups.keys():
+                    gdf = vid_group.get_group(vid)
+                    utils = []
+                    if vid not in obj_frames:
+                        continue
+                    random.seed(vid+str(trial))
+                    R = []
+                    for idx in range(len(gdf)):
+                        R.append(random.random())
+                    
+                    is_frame_dropped = []
+                    for idx in range(len(R)):
+                        drop = R[idx] < drop_rate
+                        is_frame_dropped.append(drop)
+                    obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames[vid], is_frame_dropped, 0)
+                    frames_dropped += len([u for u in is_frame_dropped if u])
+                    total_frames += len(is_frame_dropped)
+                    total_objs += len(obj_covered)
+                    objs_detected += len([x for x in obj_covered if obj_covered[x]])
+                rand_utils_drop_rates[group].append(frames_dropped/float(total_frames))
+                rand_utils_obj_rates[group].append(objs_detected/float(total_objs))
+                rand_utils_target_drop_rates[group].append(drop_rate)
+
+    
     Y = []
     for target_drop_ratio in drop_ratios:
         Y.append([])
@@ -101,10 +157,48 @@ def main(training_conf, outdir, frame_utils):
         for r in Y[idx]:
             random_drop_rates.append(drop_rate)
             random_obj_rates.append(r)
+    
+    #twin_plot_data.append((random_drop_rates, random_obj_rates, random_drop_rates))
 
+    # Plotting with target drop rate as the control variable
+    labels = ["Utility-based", "Random"]
+    for group in utils_drop_rates:
+        plt.close()
+        fig, ax = plt.subplots(figsize=(8,6))
+        ax.scatter(utils_target_drop_rates[group], utils_obj_rates[group], color="blue")
+        ax2 = ax.twinx()
+        ax2.scatter(utils_target_drop_rates[group], utils_drop_rates[group], color="red")
+        ax.set_xlabel("Target drop rate")
+        ax.set_ylabel("Fraction of target objects detected")
+        ax2.set_ylabel("Frame drop rate")
+        ax.set_ylim([0,1.1])
+        ax2.set_ylim([0,1.1])
+        ax.set_title("utility_%d"%group)
+        fig.savefig(join(outdir, "rates_vs_target_drop_rate_group_%d.png"%group))
+
+    for group in rand_utils_drop_rates:
+        plt.close()
+        fig, ax = plt.subplots(figsize=(8,6))
+        ax.scatter(rand_utils_target_drop_rates[group], rand_utils_obj_rates[group], color="blue")
+        ax2 = ax.twinx()
+        ax2.scatter(rand_utils_target_drop_rates[group], rand_utils_drop_rates[group], color="red")
+        ax.set_xlabel("Target drop rate")
+        ax.set_ylabel("Fraction of target objects detected")
+        ax2.set_ylabel("Frame drop rate")
+        ax.set_ylim([0,1.1])
+        ax2.set_ylim([0,1.1])
+        ax.set_title("random_%s"%group)
+        fig.savefig(join(outdir, "random_rates_vs_target_drop_rate_group_%d.png"%group))
+
+    aggr_util_drop_rates = []
+    aggr_util_obj_rates = []
+    for group in utils_drop_rates:
+        for idx in range(len(utils_drop_rates[group])):
+            aggr_util_drop_rates.append(utils_drop_rates[group][idx])
+            aggr_util_obj_rates.append(utils_obj_rates[group][idx])
     plt.close()
     plt.scatter(random_drop_rates, random_obj_rates, label="Random")
-    plt.scatter(utils_drop_rates, utils_obj_rates, label="Utility-based")
+    plt.scatter(aggr_util_drop_rates, aggr_util_obj_rates, label="Utility-based")
     plt.legend()
     plt.xlabel("Observed drop rate of frames")
     plt.ylabel("Fraction of target objects detected")
