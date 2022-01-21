@@ -47,17 +47,14 @@ class RandomFrameDropCondition:
             is_frame_dropped.append(drop)
         return is_frame_dropped
 
-def compute_drop_obj_metrics(cv_fold_gdf, frame_drop_condition, obj_frames, target_drop_rate):
+def compute_drop_obj_metrics(cv_fold, cv_fold_gdf, utils_data, frame_drop_condition, obj_frames, target_drop_rate):
     total_frames = 0
     frames_dropped = 0
     total_objs = 0
     objs_detected = 0
-    vid_group = cv_fold_gdf.groupby("vid_name")
-    for vid in vid_group.groups.keys():
-        gdf = vid_group.get_group(vid)
-        utils = []
-        for idx, row in gdf.iterrows():
-            utils.append(row["utility"])
+    vids = cv_fold_gdf["vid_name"].unique()
+    for vid in vids:
+        utils = utils_data[(cv_fold, vid)]
         # Calculate the utility threshold based on the drop rate
         is_frame_dropped = frame_drop_condition.get_frame_drop_bools(utils)
         if vid not in obj_frames:
@@ -104,6 +101,17 @@ def main(training_conf, outdir, frame_utils):
     # For each approach, we have 1 dict for target_drop_rates, obj_det_rates, obs_drop_rates
     data = [[{}, {}, {}], [{},{},{}]]
 
+    # First create a map from (cv_fold, vid) --> [utils array]
+    grouping = df.groupby(["cv_fold" , "vid_name"])
+    utils_data = {}
+    for group in grouping.groups.keys():
+        (fold, vid) = group
+        gdf = grouping.get_group(group)
+        utils = []
+        for idx, row in gdf.iterrows():
+            utils.append(row["utility"])
+        utils_data[group] = utils
+
     grouping = df.groupby("cv_fold")
     for group in grouping.groups.keys():
         for approach in data:
@@ -121,7 +129,6 @@ def main(training_conf, outdir, frame_utils):
                     num_trials = 1
 
                 for trial in range(num_trials):
-                    print (approach_idx, drop_rate, group, trial)
                     if approach_idx == 0:
                         drop_cond = RandomFrameDropCondition(drop_rate)
                     else:
@@ -129,7 +136,7 @@ def main(training_conf, outdir, frame_utils):
 
                     result = data[approach_idx]
                     
-                    obs_frame_drop_rate, obj_det_rate = compute_drop_obj_metrics(fold_df, drop_cond, obj_frames, drop_rate)
+                    obs_frame_drop_rate, obj_det_rate = compute_drop_obj_metrics(group, fold_df, utils_data, drop_cond, obj_frames, drop_rate)
 
                     result[2][group].append(obs_frame_drop_rate)
                     result[1][group].append(obj_det_rate)
