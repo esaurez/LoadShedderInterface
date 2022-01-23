@@ -1,0 +1,11 @@
+training_dir: /home/cetus/LoadShedderInterface/data/blue_only
+training_split: 0.6
+color_names: blue
+num_bins: 8
+pf_threshold: 0.025
+
+hue_bins:
+    -  name: "blue"
+       ranges:
+            - start:    110
+              end:      130
