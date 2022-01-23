@@ -20,24 +20,57 @@ level_column = {Levels.SHEDDER: "Shedder", Levels.FILTER: "Filter", Levels.DETEC
 
 level_order = [level_column[Levels.SHEDDER],level_column[Levels.FILTER],level_column[Levels.DETECTION],level_column[Levels.DETECTION_FILTER],level_column[Levels.SINK]]
 
-def plot_e2e_latency(dataframe, axes):
-    ax = sns.lineplot(data=dataframe, x="Frame ID", y="Total Latency [ms]", ax=axes)
+def divide(x):
+    FPS=30
+    SECONDS=5
+    division = FPS * SECONDS
+    return int(int(x)/int(division))*SECONDS
+
+def plot_e2e_latency(dataframe, axes, threshold, vertical_lines):
+    dataframe["Seconds"]=dataframe["Frame ID"].apply(divide)
+    dataframe = dataframe.loc[dataframe['Total Latency [ms]'] > 0]
+    #print(dataframe.loc[dataframe['Total Latency [ms]'] > 0].to_string())
+    df = dataframe.groupby(["Seconds"]).max()
+    yaxis_name = "Average Latency [ms] \n per 5 secs bucket"
+    df[yaxis_name] = df["Total Latency [ms]"]
+    ax = sns.lineplot(data=df, x="Seconds", y=yaxis_name, ax=axes, linewidth = 3.5)
+    axes.axhline(y=threshold, color='firebrick', linestyle='--',  label='Latency Requirement',linewidth=2.5)
+    axes.text(340,threshold + 50,'Latency Requirement',rotation=360, color='firebrick')
+    if vertical_lines:
+        axes.axvline(x=300, color='firebrick', linestyle=':', label='End of first segment', linewidth = 2.5, ymin=0, ymax=0.2)
+        axes.axhline(y=300, color='firebrick', linestyle=':',  label='!st Segment',xmin=0,xmax=1/3.0+0.015,linewidth=2.5)
+        axes.text(-30,350,'1st Segment',rotation=360, color='firebrick',fontsize=16)
+
+        axes.axvline(x=600, color='firebrick', linestyle='-.', label='End of second segment', linewidth = 2.5, ymin=0, ymax=0.2)
+        axes.axhline(y=300, color='firebrick', linestyle='-.',  label='3rd Segment',xmin=2/3,xmax=1,linewidth=2.5)
+        axes.text(620,350,'3rd Segment',rotation=360, color='firebrick',fontsize=16)
+
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
 
 def plot_e2e_types(dataframe, axes):
     #ax = sns.stripplot(data=dataframe, x="Frame ID", y="level", order=level_order, jitter=False, ax=axes)
-    ax = sns.stripplot(data=dataframe, x="Frame ID", y="End Node", ax=axes)
+    dataframe["Seconds"]=dataframe["Frame ID"].apply(divide)
+    #print(dataframe)
+    #df= dataframe.value_counts(["Seconds", "End Node"])
+    df= dataframe.groupby(["Seconds", "End Node"]).sum()
+    yaxis_name = "Count \n per 5 secs bucket"
+    df[yaxis_name] = df["Count"]
+    #print(df)
+    hue_order = ["Shedder", "Filter", "Detection", "Detection Filter", "Sink"] 
+    ax = sns.lineplot(data=df, x="Seconds", hue="End Node",style="End Node", y=yaxis_name, ax=axes, hue_order=hue_order, linewidth = 2.5)
+    #ax = sns.stripplot(data=df, x="Seconds", y="End Node", ax=axes)
     #ax.set_ylim(0, 120.0)
     #ax.set_xlim(0, float(x_max_lim))
-def plot_e2e(dataframe): 
+
+def plot_e2e(dataframe, threshold, vertical_lines): 
     figure, axes = plt.subplots(2, 1, sharex=True, figsize=(6,10)) 
     #figure.suptitle('Big title for plot')    
-    plot_e2e_latency(dataframe, axes[0])
+    plot_e2e_latency(dataframe, axes[0], threshold, vertical_lines)
     plot_e2e_types(dataframe, axes[1])
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
-    plt.xlabel("Frame Id", size=24)
+    plt.xlabel("Seconds", size=24)
     #plt.ylabel("Average\nSpatial Alignment [%]", size=24)
     plt.savefig("e2e_latency_location.pdf", bbox_inches="tight")
     plt.close()
@@ -63,28 +96,42 @@ def getUsefulValues(row):
         level = level_column[Levels.SINK]
     return latency,level,threshold,utility
 
+def get_others(frame_id, level):
+    complete_set = set([level_column[Levels.SHEDDER],level_column[Levels.FILTER],level_column[Levels.DETECTION],level_column[Levels.DETECTION_FILTER], level_column[Levels.SINK]])
+    level_set = set([level]) 
+    difference = complete_set.difference(level_set)
+    response = []
+    for value in difference:
+        response.append([frame_id, 0, value, None, None, None, 0])
+    return response 
+
 def get_dataframe(csv_file, video):
     with open(csv_file) as csvFile:
         reader = csv.DictReader(csvFile)
         # The headers are as follow
         data = []
         for row in reader:
+            #print(row)
             if video == row['video']:
                 latency,level, threshold, utility  = getUsefulValues(row)
-                data.append([int(row["frame_id"]),latency, level, threshold, utility, row["shed_decision"]])
-        return DataFrame(data, columns=["Frame ID","Total Latency [ms]", "End Node", "Threshold", "Utility","Shed Decision"])
+                frame_id = int(row["frame_id"])
+                data.append([frame_id,latency, level, threshold, utility, row["shed_decision"], 1])
+                data.extend(get_others(frame_id, level))
+        return DataFrame(data, columns=["Frame ID","Total Latency [ms]", "End Node", "Threshold", "Utility","Shed Decision", "Count"])
 
-def main(csv_file, video):
+def main(csv_file, video, threshold, vertical_lines):
     palette1 = sns.color_palette("colorblind", 8)
     sns.set_palette(palette1)
     sns.set(font_scale = 1.47)
     sns.set_style("whitegrid")
     dataframe = get_dataframe(csv_file, video)
-    plot_e2e(dataframe)
+    plot_e2e(dataframe, threshold, vertical_lines)
    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-F", dest = "csv_file", type=str, help="File that contains the csv file with the results of a run",required=True)
     parser.add_argument("-V", dest = "video", type=str, help="Name of video",required=True)
+    parser.add_argument('-T', dest="threshold",type=int, default=2200)
+    parser.add_argument('-E', dest = "vertical", action="store_true", default=False)
     args = parser.parse_args()
-    main(args.csv_file, args.video)
+    main(args.csv_file, args.video,args.threshold, args.vertical)
