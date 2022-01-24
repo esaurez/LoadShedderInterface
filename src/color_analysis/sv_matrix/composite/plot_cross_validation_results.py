@@ -16,7 +16,7 @@ import object_based_metrics_calc
 def main(frame_utils, outdir, composite_or, training_confs):
     df = pd.read_csv(frame_utils)
     plt.close()
-    fig, ax = plt.subplots(figsize=(24,8))
+    fig, ax = plt.subplots(figsize=(16,6))
     df.loc[df.composite_label == False, "composite_label"] = "-ve"
     df.loc[df.composite_label == True, "composite_label"] = "+ve"
     sns.boxplot(data=df, x="vid_name_x", y="composite_utility", hue="composite_label", ax=ax)
@@ -53,8 +53,15 @@ def main(frame_utils, outdir, composite_or, training_confs):
                 obj_files[vid][vid_obj_id] = vid_objs[obj]
         color+=1
 
+    # Build a map for (vid, cv_fold) --> [utils] for fast access
+    utils_map = {}
+    grouping = df.groupby(["vid_name_x", "cv_fold"])
+    for group in grouping.groups.keys():
+        (vid, fold) = group
+        gdf = grouping.get_group(group)
+        utils_map[group] = [row["composite_utility"] for idx, row in gdf.iterrows()]
 
-    num_points = 20
+    num_points = 50
     max_util = df["composite_utility"].max()
     frame_drop_rates = []
     obj_det_rates = []
@@ -70,7 +77,7 @@ def main(frame_utils, outdir, composite_or, training_confs):
             gdf = grouping.get_group(group)
             obj_frames = obj_files[vid]
 
-            is_frame_dropped = [row["composite_utility"] < util_threshold for idx, row in gdf.iterrows()]
+            is_frame_dropped = [u < util_threshold for u in utils_map[group]]
             obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames, is_frame_dropped, 0)
             total_frames += len(is_frame_dropped)
             frames_dropped += len([x for x in is_frame_dropped if x])
@@ -90,8 +97,6 @@ def main(frame_utils, outdir, composite_or, training_confs):
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     ax2.tick_params(axis='both', which='major', labelsize=fontsize)
     fig.savefig(join(outdir, "object_based_drops.png"), bbox_inches="tight")
-
-
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()

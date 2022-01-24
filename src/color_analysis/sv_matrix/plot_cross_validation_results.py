@@ -17,7 +17,7 @@ def main(frame_utils, outdir, training_conf_dir):
     df = pd.read_csv(frame_utils)
 
     plt.close()
-    fig, ax = plt.subplots(figsize=(24,8))
+    fig, ax = plt.subplots(figsize=(16,6))
     df.loc[df.label == False, "label"] = "-ve"
     df.loc[df.label == True, "label"] = "+ve"
     sns.boxplot(data=df, x="vid_name", y="utility", hue="label", ax=ax)
@@ -38,7 +38,15 @@ def main(frame_utils, outdir, training_conf_dir):
         conf = yaml.safe_load(fi)
     training_dir = conf["training_dir"]
 
-    num_points = 20
+    # Build a map for (vid, cv_fold) --> [utils] for fast access
+    utils_map = {}
+    grouping = df.groupby(["vid_name", "cv_fold"])
+    for group in grouping.groups.keys():
+        (vid, fold) = group
+        gdf = grouping.get_group(group)
+        utils_map[group] = [row["utility"] for idx, row in gdf.iterrows()]
+
+    num_points = 50
     max_util = df["utility"].max()
     frame_drop_rates = []
     obj_det_rates = []
@@ -57,7 +65,7 @@ def main(frame_utils, outdir, training_conf_dir):
                 continue
             obj_frames = object_based_metrics_calc.get_obj_frames(uniq_obj_file)
 
-            is_frame_dropped = [row["utility"] < util_threshold for idx, row in gdf.iterrows()]
+            is_frame_dropped = [u < util_threshold for u in utils_map[group]]
             obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames, is_frame_dropped, 0)
             total_frames += len(is_frame_dropped)
             frames_dropped += len([x for x in is_frame_dropped if x])
