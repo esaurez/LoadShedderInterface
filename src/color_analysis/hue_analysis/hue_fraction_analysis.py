@@ -16,7 +16,7 @@ import math
 import numpy as np
 import yaml
 
-def main(training_conf_dir, outdir):
+def main(training_conf_dir):
     with open(join(training_conf_dir, "conf.yaml")) as f:
         conf = yaml.safe_load(f)
     colors = {}
@@ -39,16 +39,14 @@ def main(training_conf_dir, outdir):
         for color in colors:
             color_hfs[color] = []
 
-        data = {}
-        for c in colors:
-            data[c] = {True:[[],[]], False:[[],[]]}
-
-        for frame_id in range(len(observations)):
-            observation = observations[frame_id]
-            if frame_id == 0:
+        for observation in observations:
+            if frame_id <= 1:
+                frame_id += 1
                 continue
 
             label = observation.label
+            if not label:
+                continue
             whole_histo = observation.feats.feats[0].feat.wholeHisto.histo
             hues = whole_histo.counts[0].count
             total_pixels = whole_histo.totalCountedPixels
@@ -61,34 +59,15 @@ def main(training_conf_dir, outdir):
                 hf = hue_count/float(total_pixels)
                 color_hfs[color].append(hf)
 
-                data[color][label][0].append(frame_id)
-                data[color][label][1].append(hf)
+        print (vid, end="\t")
+        for color in colors:
+            print (min(color_hfs[color]), end="\t")
+        print ("")
 
-        # Now plot
-        for c in colors:
-            plt.close()
-            fig, ax = plt.subplots(figsize=(24,6))
-            ax.bar(data[c][True][0], data[c][True][1], color="red", label="+ve")
-            ax.bar(data[c][False][0], data[c][False][1], color="blue", label="-ve")
-            ax.grid()
-            ax.legend()
-            ax.set_xlabel("Frame ID")
-            ax.set_ylabel("Hue Fraction (%s)"%c)
-            ax.set_xlim([0, len(data[c][True][0])+len(data[c][False][0])])
-
-            min_tick = min(min(data[c][True][0]),min(data[c][False][0]))
-            max_tick = max(max(data[c][True][0]),max(data[c][False][0]))
-
-            ax.set_ylim([0,0.4])
-            ax.set_xticks(np.arange(min_tick, max_tick,10))
-            ax.set_xticklabels(np.arange(min_tick, max_tick,10), rotation=90)
-            
-            fig.savefig(join(outdir, "hf_%s_%s.png"%(vid, c)), bbox_inches="tight")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyzing what should be the cutoff Hue Fraction.")
     parser.add_argument("-C", dest="training_conf_dir", help="Path to training conf folder")
-    parser.add_argument("-O", dest="outdir", help="Path to output dir")
 
     args = parser.parse_args()
-    main(args.training_conf_dir, args.outdir)
+    main(args.training_conf_dir)
 

@@ -121,6 +121,12 @@ def main(training_conf_dir, mats_dir):
             negative_mats.append(join(vid_dir, "sv_matrix_label_False_BINS_%d_C_%s.txt"%(num_bins, color)))
 
         aggr_mat, max_val = aggregate_sv_matrix.aggregate(num_bins, positive_mats, negative_mats)
+        util_mat = []
+        for row in range(len(aggr_mat[True])):
+            util_mat.append([])
+            for col in range(len(aggr_mat[True][row])):
+                util_mat[-1].append(aggr_mat[True][row][col])
+                #util_mat[-1].append(aggr_mat[True][row][col] - aggr_mat[False][row][col])
 
         # Now compute the utility for test frames
         for test_vid in test_vids:
@@ -133,7 +139,7 @@ def main(training_conf_dir, mats_dir):
             for mat in mats:
                 label = ground_truth_frames[frame_idx].label
                 count = ground_truth_frames[frame_idx].detections.totalDetections
-                util  = compute_test_frames_util.compute_util(mat, aggr_mat[True])
+                util  = compute_test_frames_util.compute_util(mat, util_mat)
                 raw_data.append([count, label, frame_idx, util, test_vid, cv_fold])
                 frame_idx += 1
 
@@ -151,7 +157,10 @@ def main(training_conf_dir, mats_dir):
     thresholds = []
     obj_rates = []
     frame_rates = []
-    for util_threshold in np.arange(0, 0.04, 0.0005):
+    num_points = 50
+    max_utils = df["utility"].max()
+    step = max_utils/num_points
+    for util_threshold in np.arange(0, max_utils, step):
         obj_rate, frame_rate = compute_object_metrics(training_dir, df, mats_dir, util_threshold)
         obj_rates.append(obj_rate)
         frame_rates.append(frame_rate)

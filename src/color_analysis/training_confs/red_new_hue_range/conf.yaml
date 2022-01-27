@@ -1,8 +1,7 @@
-training_dir: /home/cetus/LoadShedderInterface/data/seed_videos
+training_dir: /home/cetus/LoadShedderInterface/data/red_new_hue_range
 training_split: 0.6
 color_names: red
-pf_threshold: 0.033
-#pf_threshold: 0.025
+pf_threshold: 0.029
 num_bins: 8
 
 hue_bins:
@@ -10,5 +9,5 @@ hue_bins:
        ranges:
             - start:    0 
               end:      10
-            - start:    160
+            - start:    170
               end:      180
