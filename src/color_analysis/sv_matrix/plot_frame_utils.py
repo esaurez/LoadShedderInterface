@@ -18,48 +18,6 @@ import math
 
 max_frames=None
 
-def get_sv_counts(frame, colors, num_bins):
-    bin_size = 256/float(num_bins)
-    sv_mats = {}
-    total_pixels = {}
-    for color_idx in range(len(colors)):
-        sv_mats[color_idx] = [[0 for col in range(num_bins)] for row in range(num_bins)]
-        total_pixels[color_idx] = 0
-
-    with open(frame) as f:
-        for line in f.readlines():
-            s = line.split()
-            hue = int(s[0])
-            sat = int(s[1])
-            val = int(s[2])
-
-            if sat == 0 or val == 0:
-                continue
-
-            for color_idx in range(len(colors)):
-                color = colors[color_idx]
-                pixel_matches = False
-                for hue_range in color["ranges"]:
-                    if hue >= hue_range["start"] and hue <= hue_range["end"]:
-                        pixel_matches = True
-                        break
-                if pixel_matches:
-                    sat_idx = int(sat/bin_size)
-                    val_idx = int(val/bin_size)
-                    sv_mats[color_idx][val_idx][sat_idx] += 1
-                    total_pixels[color_idx] += 1
-
-    # Now normalize
-    for color_idx in range(len(colors)):
-        for row in range(num_bins):
-            for col in range(num_bins):
-                if total_pixels[color_idx] == 0:
-                    sv_mats[color_idx][row][col] = 0
-                else:
-                    sv_mats[color_idx][row][col] /= float(total_pixels[color_idx])
-
-    return sv_mats
-
 def dump_sv_mat(mat, outfile):
     with open(outfile, "w") as f:
         for row in mat:
