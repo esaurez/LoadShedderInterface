@@ -53,8 +53,10 @@ def main(frame_utils, outdir, training_conf_dir):
     frame_drop_rates = []
     obj_det_rates = []
     false_neg_rates = []
+    obj_sel_rates = []
     util_thresholds = np.arange(0, max_util, max_util/num_points)
     for util_threshold in util_thresholds:
+        per_threshold_obj_sel_rates = []
         total_frames = 0
         frames_dropped = 0
         total_objs = 0
@@ -72,6 +74,8 @@ def main(frame_utils, outdir, training_conf_dir):
 
             is_frame_dropped = [u < util_threshold for (u,l) in utils_map[group]]
             obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames, is_frame_dropped, 0)
+            obj_frame_sel_rates = object_based_metrics_calc.get_obj_frame_sel_rates(obj_frames, is_frame_dropped, 0)
+            per_threshold_obj_sel_rates += obj_frame_sel_rates
             total_frames += len(is_frame_dropped)
             frames_dropped += len([x for x in is_frame_dropped if x])
             total_objs += len(obj_covered)
@@ -85,7 +89,9 @@ def main(frame_utils, outdir, training_conf_dir):
         obj_det_rates.append(detected_objs/float(total_objs))
         frame_drop_rates.append(frames_dropped/float(total_frames))
         false_neg_rates.append(false_negs/float(ground_truth_positives))
+        obj_sel_rates.append(min(per_threshold_obj_sel_rates))
 
+    '''
     plt.close()
     fig, ax = plt.subplots(figsize=(8,6))
     ax.plot(util_thresholds, obj_det_rates, color="red")
@@ -110,12 +116,13 @@ def main(frame_utils, outdir, training_conf_dir):
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     ax2.tick_params(axis='both', which='major', labelsize=fontsize)
     fig.savefig(join(outdir, "false-negative-rates.png"), bbox_inches="tight")
-   
+    '''
     plt.close()
     fig, ax = plt.subplots(figsize=(8,6))
     ax.plot(util_thresholds, false_neg_rates, label="False -ve rate")
     ax.plot(util_thresholds, frame_drop_rates, label="Frame Drop Rate")
     ax.plot(util_thresholds, obj_det_rates, label="Obj Detn. Rate")
+    ax.plot(util_thresholds, obj_sel_rates, label="Object-based QoR")
     ax.set_xlabel("Utility threshold", fontsize=fontsize)
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     legend = ax.legend(fancybox=True,shadow=False, prop=fontP)

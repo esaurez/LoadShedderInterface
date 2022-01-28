@@ -62,14 +62,16 @@ def get_sv_counts(frame, conf_colors, num_bins, pf_threshold):
             for col_idx in range(len(row.counts)):
                 col = row.counts[col_idx]
                 total_color_pixels += col
-                if row_idx == 0 or col_idx == 0:
-                    continue
+                #TODO
+                #if row_idx == 0 or col_idx == 0:
+                #    continue
                 sv_mats[conf_color_idx][row_idx][col_idx] += col
                 total_counted_pixels += col
         
-        for row_idx in range(len(sv_mats[conf_color_idx])):
-            for col_idx in range(len(sv_mats[conf_color_idx][row_idx])):
-                sv_mats[conf_color_idx][row_idx][col_idx] /= total_counted_pixels
+        if total_counted_pixels > 0:
+            for row_idx in range(len(sv_mats[conf_color_idx])):
+                for col_idx in range(len(sv_mats[conf_color_idx][row_idx])):
+                    sv_mats[conf_color_idx][row_idx][col_idx] /= total_counted_pixels
 
         hue_fraction = total_color_pixels/total_foreground_pixels
         if hue_fraction < pf_threshold:

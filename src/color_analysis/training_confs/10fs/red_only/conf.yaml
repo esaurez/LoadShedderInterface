@@ -1,4 +1,4 @@
-training_dir: /home/cetus/LoadShedderInterface/data/test/
+training_dir: /home/cetus/LoadShedderInterface/data/10fps/red_only/
 training_split: 0.6
 color_names: red
 pf_threshold: 0.005

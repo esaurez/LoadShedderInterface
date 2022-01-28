@@ -53,6 +53,7 @@ def compute_drop_obj_metrics(cv_fold, cv_fold_gdf, utils_data, frame_drop_condit
     frames_dropped = 0
     total_objs = 0
     objs_detected = 0
+    obj_sel_rates = []
     vids = cv_fold_gdf["vid_name"].unique()
     for vid in vids:
         utils = utils_data[(cv_fold, vid)]
@@ -62,13 +63,15 @@ def compute_drop_obj_metrics(cv_fold, cv_fold_gdf, utils_data, frame_drop_condit
             continue
         num_cdf_frames = int(cdf_ratio*len(utils))
         obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames[vid], is_frame_dropped, num_cdf_frames)
+        obj_frame_sel_rates = object_based_metrics_calc.get_obj_frame_sel_rates(obj_frames[vid], is_frame_dropped, num_cdf_frames)
         frames_dropped += len([idx for idx in range(len(is_frame_dropped)) if is_frame_dropped[idx] and idx >= num_cdf_frames])
         total_frames += len(utils)-num_cdf_frames
         total_objs += len(obj_covered)
         objs_detected += len([x for x in obj_covered if obj_covered[x]])
+        obj_sel_rates += obj_frame_sel_rates
     obs_frame_drop_rate = frames_dropped/float(total_frames)
     obj_det_rate = objs_detected/float(total_objs)
-    return (obs_frame_drop_rate, obj_det_rate)
+    return (obs_frame_drop_rate, obj_det_rate, np.mean(obj_sel_rates))
 
 def get_obj_frames(training_dir):
     vids = [d for d in listdir(training_dir) if isdir(join(training_dir, d))]
@@ -101,7 +104,7 @@ def main(training_conf, outdir, frame_utils, cdf_ratio):
     # Read the frame_utils.csv
     df = pd.read_csv(frame_utils)
     # For each approach, we have 1 dict for target_drop_rates, obj_det_rates, obs_drop_rates
-    data = [[{}, {}, {}], [{},{},{}]]
+    data = [[{}, {}, {}, {}], [{},{},{},{}]]
 
     # First create a map from (cv_fold, vid) --> [utils array]
     grouping = df.groupby(["cv_fold" , "vid_name"])
@@ -138,8 +141,9 @@ def main(training_conf, outdir, frame_utils, cdf_ratio):
 
                     result = data[approach_idx]
                     
-                    obs_frame_drop_rate, obj_det_rate = compute_drop_obj_metrics(group, fold_df, utils_data, drop_cond, obj_frames, drop_rate, cdf_ratio)
+                    obs_frame_drop_rate, obj_det_rate, obj_frame_sel_rate = compute_drop_obj_metrics(group, fold_df, utils_data, drop_cond, obj_frames, drop_rate, cdf_ratio)
 
+                    result[3][group].append(obj_frame_sel_rate)
                     result[2][group].append(obs_frame_drop_rate)
                     result[1][group].append(obj_det_rate)
                     result[0][group].append(drop_rate)
@@ -153,11 +157,11 @@ def main(training_conf, outdir, frame_utils, cdf_ratio):
         for group in result[0]:
             plt.close()
             fig, ax = plt.subplots(figsize=(8,6))
-            ax.scatter(result[0][group], result[1][group], color="blue")
+            ax.scatter(result[0][group], result[3][group], color="blue")
             ax2 = ax.twinx()
             ax2.scatter(result[0][group], result[2][group], color="red")
             ax.set_xlabel("Target drop rate", fontsize=fontsize)
-            ax.set_ylabel("Fraction of target objects detected", fontsize=fontsize)
+            ax.set_ylabel("Object-based QoR", fontsize=fontsize)
             ax2.set_ylabel("Frame drop rate", fontsize=fontsize)
             ax.set_ylim([0,1.1])
             ax2.set_ylim([0,1.1])
@@ -175,13 +179,13 @@ def main(training_conf, outdir, frame_utils, cdf_ratio):
         obj_dets = []
         for group in result[0]:
             obs_drops += result[2][group]
-            obj_dets += result[1][group]
+            obj_dets += result[3][group]
         ax.scatter(obs_drops, obj_dets, label=label)
     fontP = FontProperties()
     fontP.set_size(fontsize)
     ax.legend(prop=fontP)
     ax.set_xlabel("Observed drop rate of frames", fontsize=fontsize)
-    ax.set_ylabel("Fraction of target objects detected", fontsize=fontsize)
+    ax.set_ylabel("Object-based QoR", fontsize=fontsize)
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     fig.savefig(join(outdir, "random_comparison_R_%.1f.png"%cdf_ratio), bbox_inches="tight")
 

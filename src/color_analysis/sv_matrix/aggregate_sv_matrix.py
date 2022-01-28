@@ -29,7 +29,7 @@ def aggregate(num_bins, positive_sv_mats, negative_sv_mats):
                 if row == 0 or col == 0:
                     aggr[label][row][col] = 0
                 else:
-                    aggr[label][row][col] = np.mean(aggr[label][row][col])
+                    aggr[label][row][col] = np.median(aggr[label][row][col])
                     max_val = max(aggr[label][row][col], max_val)
     return aggr, max_val
 
