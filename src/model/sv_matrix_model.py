@@ -1,4 +1,6 @@
 import os, sys
+from os import listdir
+from os.path import isfile, join
 import capnp
 from os.path import join
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -18,7 +20,7 @@ class SVMatrixModel(UtilityModel):
 
         self.colors = [] # one entry for every color
         self.num_bins = self.config_data["num_bins"]
-        self.util_cdf = []
+        self.util_cdfs = []
 
         self.is_composite = False
         self.composite_or = False
@@ -40,12 +42,15 @@ class SVMatrixModel(UtilityModel):
 
             self.colors.append((range_limits, self.read_mat_file(join(model_path, mat_file))))
 
-        with open(join(model_path, "util_cdf.txt")) as f:
-            for line in f.readlines():
-                s = line.split()
-                drop_rate = float(s[0])
-                util = float(s[1])
-                self.util_cdf.append((drop_rate, util))
+        util_cdf_files = [f for f in listdir(model_path) if isfile(join(model_path, f)) and f.startswith("util_cdf_") and f.endswith(".txt")]
+        for util_cdf_file in util_cdf_files:
+            self.util_cdfs.append([])
+            with open(join(model_path, util_cdf_file)) as f:
+                for line in f.readlines():
+                    s = line.split()
+                    drop_rate = float(s[0])
+                    util = float(s[1])
+                    self.util_cdfs[-1].append((drop_rate, util))
 
     def read_mat_file(self, mat_file):
         mat = []
@@ -134,9 +139,11 @@ class SVMatrixModel(UtilityModel):
             else:
                 return min(color_utils)
 
-    def get_utility_threshold(self, drop_rate):
-        for idx in range(len(self.util_cdf)):
-            (d, util) = self.util_cdf[idx]
+    def get_utility_threshold(self, drop_rate, vid_idx):
+        if vid_idx >= len(self.util_cdfs):
+            return -1
+        for idx in range(len(self.util_cdfs[vid_idx])):
+            (d, util) = self.util_cdfs[vid_idx][idx]
             if d == drop_rate:
                 return util
 
@@ -145,7 +152,7 @@ class SVMatrixModel(UtilityModel):
                     return util
                 else:
                     # Interpolate
-                    prev = self.util_cdf[idx-1]
+                    prev = self.util_cdfs[vid_idx][idx-1]
                     slope = (util - prev[1])/(d - prev[0])
 
                     result = prev[1] + slope*(drop_rate - prev[0])

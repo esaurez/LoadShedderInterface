@@ -45,24 +45,30 @@ class InterfaceReqHandler:
         return reply
 
     ## Stuttgart folks implement this function ##
-    def compute_util_threshold(self, drop_ratio):
-        return self.model.get_utility_threshold(drop_ratio)
+    def compute_util_threshold(self, drop_ratio, vid_idx):
+        return self.model.get_utility_threshold(drop_ratio, vid_idx)
 
     ## Stuttgart folks implement this function ##
     def compute_utility(self, features, mode):
         return self.model.get_utility(features)
 
     def handle_util_threshold_req(self, util_threshold_req):
-        drop_ratio = util_threshold_req.dropRatio
         mode = util_threshold_req.mode
-
-        # Function call to compute the util threshold for given drop ratio
-        util_threshold = self.compute_util_threshold(drop_ratio)
 
         reply = messages_capnp.UtilityMessage.new_message()
         reply.messageType = "utilityThresholdResponse"
         reply.init("utilityThresholdResponse")
-        reply.utilityThresholdResponse.threshold = util_threshold
+        thresholds = reply.utilityThresholdResponse.init("thresholds", len(util_threshold_req.dropRatios))
+
+        # Function call to compute the util threshold for given drop ratio
+        idx = 0
+        for vid_drop_ratio in util_threshold_req.dropRatios:
+            vid_idx = vid_drop_ratio.videoIdx
+            drop_ratio = vid_drop_ratio.dropRatio
+            util_threshold = self.compute_util_threshold(drop_ratio, vid_idx)
+            thresholds[idx].videoIdx = vid_idx
+            thresholds[idx].threshold = util_threshold
+            idx += 1
         return reply
 
     def handle_util_req(self, util_req):
