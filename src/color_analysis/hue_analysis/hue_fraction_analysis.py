@@ -15,6 +15,7 @@ from os.path import basename, join, isdir, isfile
 import math
 import numpy as np
 import yaml
+from capnp_serial import mapping_capnp
 
 def main(training_conf_dir):
     with open(join(training_conf_dir, "conf.yaml")) as f:
@@ -40,25 +41,47 @@ def main(training_conf_dir):
             color_hfs[color] = []
 
         for observation in observations:
-            if frame_id <= 1:
+            if frame_id < 1:
                 frame_id += 1
                 continue
 
             label = observation.label
             if not label:
+                frame_id += 1
                 continue
-            whole_histo = observation.feats.feats[0].feat.wholeHisto.histo
-            hues = whole_histo.counts[0].count
-            total_pixels = whole_histo.totalCountedPixels
+            
+            feature = observation.feats.feats[0]
+            if feature.type == mapping_capnp.Feature.Type.fullColorHistogram:
+                whole_histo = feature.feat.wholeHisto.histo
+                hues = whole_histo.counts[0].count
+                total_pixels = whole_histo.totalCountedPixels
 
-            for color in colors:
-                hue_count = 0
-                for (low, high) in colors[color]:
-                    for idx in range(low, high):
-                        hue_count += hues[idx]
-                hf = hue_count/float(total_pixels)
-                color_hfs[color].append(hf)
-
+                for color in colors:
+                    hue_count = 0
+                    for (low, high) in colors[color]:
+                        for idx in range(low, high):
+                            hue_count += hues[idx]
+                    hf = hue_count/float(total_pixels) 
+                    color_hfs[color].append(hf)
+            elif feature.type == mapping_capnp.Feature.Type.hsvHistogram:
+                hists = feature.feat.hsvHisto.colorHistograms 
+                fg_pixels = feature.feat.hsvHisto.totalCountedPixels
+                if len(hists) > 1:
+                    print ("Multi color not supported rn. Exiting.")
+                    exit(1)
+                for color in colors:
+                    hist = hists[0]
+                    
+                    total_color_pixels = 0
+                    for row_idx in range(len(hist.valueBins)):
+                        row = hist.valueBins[row_idx]
+                        for col_idx in range(len(row.counts)):
+                            col = row.counts[col_idx]
+                            total_color_pixels += col
+                    hue_fraction = total_color_pixels/fg_pixels
+                    print (vid, frame_id, hue_fraction)
+                    color_hfs[color].append(hue_fraction)
+            frame_id += 1
         print (vid, end="\t")
         for color in colors:
             print (min(color_hfs[color]), end="\t")
