@@ -89,7 +89,7 @@ def main(frame_utils, outdir, training_conf_dir):
         obj_det_rates.append(detected_objs/float(total_objs))
         frame_drop_rates.append(frames_dropped/float(total_frames))
         false_neg_rates.append(false_negs/float(ground_truth_positives))
-        obj_sel_rates.append(min(per_threshold_obj_sel_rates))
+        obj_sel_rates.append(np.mean(per_threshold_obj_sel_rates))
 
     '''
     plt.close()
