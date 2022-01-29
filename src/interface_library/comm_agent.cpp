@@ -13,7 +13,7 @@ CommAgent::~CommAgent() {
     sock->close();
 }
 
-std::unordered_map<int, double> CommAgent::getUtilityThreshold(const std::unordered_map<int, float>& perVideoDropRatio,
+std::unordered_map<unsigned int, double> CommAgent::getUtilityThreshold(const std::unordered_map<unsigned int, float>& perVideoDropRatio,
                                                                const std::string& mode)
 {
   ::capnp::MallocMessageBuilder message;
@@ -21,7 +21,7 @@ std::unordered_map<int, double> CommAgent::getUtilityThreshold(const std::unorde
   utilMessage.setMessageType(UtilityMessage::Type::UTILITY_THRESHOLD_REQUEST);
   UtilityThresholdRequest::Builder utilThresholdReq = utilMessage.initUtilityThresholdRequest();
   auto dropRequests = utilThresholdReq.initDropRatios(static_cast<unsigned int>(perVideoDropRatio.size()));
-  int idx = 0;
+  unsigned int idx = 0;
   for (const auto& videoRequest : perVideoDropRatio)
   {
     dropRequests[idx].setVideoIdx(videoRequest.first);
@@ -49,7 +49,7 @@ std::unordered_map<int, double> CommAgent::getUtilityThreshold(const std::unorde
   auto capnpMessage = reader.getRoot<UtilityMessage>();
 
   assert(capnpMessage.getMessageType() == UtilityMessage::Type::UTILITY_THRESHOLD_RESPONSE);
-  std::unordered_map<int, double> response;
+  std::unordered_map<unsigned int, double> response;
   const auto& thresholds = capnpMessage.getUtilityThresholdResponse().getThresholds();
   for(const auto& threshold : thresholds)
   {
@@ -58,7 +58,7 @@ std::unordered_map<int, double> CommAgent::getUtilityThreshold(const std::unorde
   return response;
 }
 
-double CommAgent::getUtilityValue(Features::Builder &features, int videoIdx, const std::string& mode) {
+double CommAgent::getUtilityValue(Features::Builder &features, unsigned int videoIdx, const std::string& mode) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_REQUEST);

@@ -19,12 +19,12 @@ struct UtilityMessage {
 }
 
 struct VideoIdxDropRatio {
-    videoIdx @0 :UInt64;
+    videoIdx @0 :UInt32;
     dropRatio @1 :Float64;
 }
 
 struct VideoIdxUtilityThreshold {
-    videoIdx @0 :UInt64;
+    videoIdx @0 :UInt32;
     threshold @1 :Float64;
 }
 
@@ -40,7 +40,7 @@ struct UtilityThresholdResponse {
 struct UtilityRequest {
     feats @0 :Mapping.Features;
     mode @1 :Text;  
-    videoIdx @2 :UInt64;
+    videoIdx @2 :UInt32;
 }
 
 struct UtilityResponse {

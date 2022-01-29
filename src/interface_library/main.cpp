@@ -37,7 +37,7 @@ void addFullColorHistogram(Feature::Builder feature) {
 int main() {
     std::string mode = "max_cdf";
     CommAgent agent("tcp://localhost:5556");
-    std::unordered_map<int, float> request;
+    std::unordered_map<unsigned int, float> request;
     request[0] = 0.0;
     const auto& response = agent.getUtilityThreshold(request, mode);
     std::cout <<  response.at(0) << std::endl; 
