@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 from os import listdir
 from os.path import join, isfile, isdir
 import yaml
@@ -25,8 +26,11 @@ def main(training_conf):
 
     DATA = [[],[]]
 
+    vid_data = {}
+
     for vid in vids:
         vid_dir = join(training_dir, vid)
+        vid_data[vid] = [[],[]]
         bin_file = [join(vid_dir, f) for f in listdir(vid_dir) if isfile(join(vid_dir, f)) and f.endswith(".bin")][0]
         observations = python_server.mapping_features.read_samples(bin_file)
         if len(DATA[1]) == 0:
@@ -36,6 +40,10 @@ def main(training_conf):
             o = observations[idx]
             if o.label:
                 DATA[1][idx] += 1
+                vid_data[vid][1].append(1)
+            else:
+                vid_data[vid][1].append(0)
+            vid_data[vid][0].append(idx)
 
     plt.close()
     fontsize=20
@@ -47,6 +55,18 @@ def main(training_conf):
     ax.set_ylabel("Activity", fontsize=fontsize)
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     fig.savefig("activity.png", bbox_inches="tight")
+
+    plt.close()
+    fig,ax = plt.subplots(figsize=(24,4))
+    bottom = []
+    for vid in vid_data:
+        if len(bottom) == 0:
+            bottom = np.array([0 for i in vid_data[vid][0]])
+        vid_data[vid][1] = np.array(vid_data[vid][1])
+        ax.bar(vid_data[vid][0], vid_data[vid][1], bottom=bottom)
+        bottom = bottom + vid_data[vid][1]
+    fig.savefig("stacked.png", bbox_inches="tight")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
