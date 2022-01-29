@@ -13,43 +13,59 @@ CommAgent::~CommAgent() {
     sock->close();
 }
 
-double CommAgent::getUtilityThreshold(float dropRatio, const std::string &mode) {
-    ::capnp::MallocMessageBuilder message;
-    UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
-    utilMessage.setMessageType(UtilityMessage::Type::UTILITY_THRESHOLD_REQUEST);
-    UtilityThresholdRequest::Builder utilThresholdReq = utilMessage.initUtilityThresholdRequest();
-    utilThresholdReq.setDropRatio(dropRatio);
-    utilThresholdReq.setMode(mode);
+std::unordered_map<int, double> CommAgent::getUtilityThreshold(const std::unordered_map<int, float>& perVideoDropRatio,
+                                                               const std::string& mode)
+{
+  ::capnp::MallocMessageBuilder message;
+  UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
+  utilMessage.setMessageType(UtilityMessage::Type::UTILITY_THRESHOLD_REQUEST);
+  UtilityThresholdRequest::Builder utilThresholdReq = utilMessage.initUtilityThresholdRequest();
+  auto dropRequests = utilThresholdReq.initDropRatios(static_cast<unsigned int>(perVideoDropRatio.size()));
+  int idx = 0;
+  for (const auto& videoRequest : perVideoDropRatio)
+  {
+    dropRequests[idx].setVideoIdx(videoRequest.first);
+    dropRequests[idx].setDropRatio(videoRequest.second);
+    idx++;
+  }
+  auto wordArray1 = ::capnp::messageToFlatArray(message);
+  auto charArray1 = wordArray1.asChars();
+  std::shared_ptr<const std::string> serializedOut =
+    std::make_shared<const std::string>(charArray1.begin(), charArray1.end());
+  zmq::message_t request((void*)serializedOut->data(), serializedOut->size(), NULL);
+  // Handling of the reply
+  zmq::message_t reply;
+  {
+    std::lock_guard<std::mutex> lock(agentLock);
+    sock->send(std::move(request), zmq::send_flags::none);
+    sock->recv(reply);
+  }
+  std::shared_ptr<const std::string> serialized =
+    std::make_shared<const std::string>(static_cast<char*>(reply.data()), reply.size());
 
-    auto wordArray1 = ::capnp::messageToFlatArray(message);
-    auto charArray1 = wordArray1.asChars();
-    std::shared_ptr<const std::string> serializedOut = std::make_shared<const std::string> (charArray1.begin(), charArray1.end());
-    zmq::message_t request((void*)serializedOut->data(), serializedOut->size(), NULL);
-    // Handling of the reply
-    zmq::message_t reply;
-    {
-        std::lock_guard<std::mutex> lock(agentLock);
-        sock->send (std::move(request), zmq::send_flags::none);
-        sock->recv (reply);
-    }
-    std::shared_ptr<const std::string> serialized = std::make_shared<const std::string>(static_cast<char*>(reply.data()), reply.size());
+  auto num_words = serialized->size() / sizeof(capnp::word);
+  auto wordArray = kj::ArrayPtr<capnp::word const>(reinterpret_cast<capnp::word const*>(serialized->data()), num_words);
+  ::capnp::FlatArrayMessageReader reader(wordArray);
+  auto capnpMessage = reader.getRoot<UtilityMessage>();
 
-    auto num_words = serialized->size() / sizeof(capnp::word);
-    auto wordArray = kj::ArrayPtr<capnp::word const>(reinterpret_cast<capnp::word const*>(serialized->data()), num_words);
-    ::capnp::FlatArrayMessageReader reader(wordArray);
-    auto capnpMessage = reader.getRoot<UtilityMessage>();
-
-    assert(capnpMessage.getMessageType() == UtilityMessage::Type::UTILITY_THRESHOLD_RESPONSE);
-    return capnpMessage.getUtilityThresholdResponse().getThreshold();
+  assert(capnpMessage.getMessageType() == UtilityMessage::Type::UTILITY_THRESHOLD_RESPONSE);
+  std::unordered_map<int, double> response;
+  const auto& thresholds = capnpMessage.getUtilityThresholdResponse().getThresholds();
+  for(const auto& threshold : thresholds)
+  {
+    response[threshold.getVideoIdx()] = threshold.getThreshold();
+  }
+  return response;
 }
 
-double CommAgent::getUtilityValue(Features::Builder &features, const std::string& mode) {
+double CommAgent::getUtilityValue(Features::Builder &features, int videoIdx, const std::string& mode) {
     ::capnp::MallocMessageBuilder message;
     UtilityMessage::Builder utilMessage = message.initRoot<UtilityMessage>();
     utilMessage.setMessageType(UtilityMessage::Type::UTILITY_REQUEST);
     UtilityRequest::Builder utilThresholdReq = utilMessage.initUtilityRequest();
     utilThresholdReq.setFeats(features.asReader());
     utilThresholdReq.setMode(mode);
+    utilThresholdReq.setVideoIdx(videoIdx);
 
     auto wordArray1 = ::capnp::messageToFlatArray(message);
     auto charArray1 = wordArray1.asChars();
