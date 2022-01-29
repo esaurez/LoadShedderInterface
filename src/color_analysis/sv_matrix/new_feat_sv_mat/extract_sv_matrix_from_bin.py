@@ -110,7 +110,7 @@ def main(training_conf_file, num_bins, bin_file, outdir, pf_threshold, training_
     # Reading information about the ground-truth of frames from the bin file
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
     # Creating the ProcessPoolExecutor
-    executor = ProcessPoolExecutor(max_workers=32)
+    executor = ProcessPoolExecutor(max_workers=8)
 
     colors = training_conf["hue_bins"]
     sv_mat_list = [[] for idx in range(len(colors))] # Initially designed to work for multiple colors. Right now only 1 color (w/ multiple hue ranges) is used 

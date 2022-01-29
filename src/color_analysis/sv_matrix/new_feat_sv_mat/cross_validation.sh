@@ -20,6 +20,8 @@ then
     rm -r $MATS
     mkdir -p $MATS
     
+    pids=""
+
     # Step 1 : Computer per video SV matrix
     for vid in $(ls $VIDEO_DIR)
     do
@@ -28,9 +30,15 @@ then
         bin_file=$(find $vid_dir -name "*.bin")
         echo $bin_file
         cmd="python3 extract_sv_matrix_from_bin.py -C $TRAINING_CONF -B $bin_file -O $vid_dir --bins $NUM_BINS --training-split 1.0"
-        $cmd
+        $cmd &
+        pids="$pids $!"
     
         mkdir $MATS/$vid
+    done
+
+    for pid in $pids
+    do
+        wait $pid
     done
 fi
 

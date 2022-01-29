@@ -37,59 +37,6 @@ def read_per_frame_mats(bin_file, conf_colors, num_bins, pf_threshold):
         mats.append(future.result()[0])
     return mats
 
-def compute_object_metrics(training_dir, utils_df, mats_dir, util_threshold):
-    aggr_total_objs = 0
-    aggr_detected_objs = 0
-
-    total_frames = 0
-    frames_dropped = 0
-
-    grouping = utils_df.groupby(["vid_name", "cv_fold"])
-    for group in grouping.groups.keys():
-        (vid, fold) = group
-        gdf = grouping.get_group(group)
-
-        uniq_obj_file = join(join(training_dir, vid), "unique_objs_per_frame.txt")
-        if not isfile(uniq_obj_file):
-            continue
-        obj_frames = object_based_metrics_calc.get_obj_frames(uniq_obj_file)
-
-        # Getting the utilities for each frame
-        frames = []
-        for idx, row in gdf.iterrows():
-            frame_idx = row["frame_idx"]
-            util = row["utility"]
-            frames.append((frame_idx, util))
-        frames = sorted(frames, key = lambda x : x[0])
-        utils = [x[1] for x in frames]
-
-        total_frames += len(utils)
-        frames_dropped += len([f for f in utils if f < util_threshold])
-
-        obj_covered = {}
-        for obj in obj_frames:
-            obj_in_training_data = False
-            obj_found = False
-            frames = obj_frames[obj]
-
-            for fidx in frames:
-                if utils[fidx] >= util_threshold:
-                    obj_found = True
-
-            if not obj_in_training_data:
-                global_obj_id = vid+str(obj)
-                obj_covered[global_obj_id] = obj_found
-
-
-        if len(obj_covered) != 0:
-            object_detection_rate = len([x for x in obj_covered if obj_covered[x] == True])/float(len(obj_covered))
-
-            aggr_total_objs += len(obj_covered)
-            aggr_detected_objs += len([x for x in obj_covered if obj_covered[x] == True])
-
-    frame_drop_rate = frames_dropped/float(total_frames) 
-    return float(aggr_detected_objs)/aggr_total_objs, frame_drop_rate        
-
 def main(training_conf_dir, mats_dir):
     # Read the conf
     with open(join(training_conf_dir, "conf.yaml")) as fi:
@@ -163,28 +110,6 @@ def main(training_conf_dir, mats_dir):
     ax.set_ylabel("Utility for %s"%color)
     ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
     fig.savefig(join(mats_dir, "combined_util_CROSSVIDEO.png"), bbox_inches="tight")
-
-    thresholds = []
-    obj_rates = []
-    frame_rates = []
-    num_points = 50
-    max_utils = df["utility"].max()
-    step = max_utils/num_points
-    for util_threshold in np.arange(0, max_utils, step):
-        obj_rate, frame_rate = compute_object_metrics(training_dir, df, mats_dir, util_threshold)
-        obj_rates.append(obj_rate)
-        frame_rates.append(frame_rate)
-        thresholds.append(util_threshold)
-
-    plt.close()
-    fig, ax = plt.subplots(figsize=(8,6))
-    ax.plot(thresholds, obj_rates, color="red")
-    ax.set_xlabel("Utility threshold")
-    ax.set_ylabel("Fraction of objects detected")
-    ax2 = ax.twinx()
-    ax2.plot(thresholds, frame_rates, color="blue")
-    ax2.set_ylabel("Fraction of frames dropped")
-    fig.savefig(join(mats_dir, "object_based_drops.png"), bbox_inches="tight")
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
