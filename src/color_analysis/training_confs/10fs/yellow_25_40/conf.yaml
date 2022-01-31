@@ -1,0 +1,11 @@
+training_dir: /home/cetus/LoadShedderInterface/data/10fps/yellow_25_40/
+training_split: 0.6
+color_names: yellow
+pf_threshold: 0.00
+num_bins: 8
+
+hue_bins:
+    -  name: yellow
+       ranges:
+            - start:    25
+              end:      40

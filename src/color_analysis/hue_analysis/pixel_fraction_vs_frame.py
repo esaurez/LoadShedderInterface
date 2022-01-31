@@ -15,6 +15,7 @@ from os.path import basename, join, isdir, isfile
 import math
 import numpy as np
 import yaml
+import hue_fraction_analysis
 
 def main(training_conf_dir, outdir):
     with open(join(training_conf_dir, "conf.yaml")) as f:
@@ -29,6 +30,7 @@ def main(training_conf_dir, outdir):
     training_dir = conf["training_dir"]
     vids = [d for d in listdir(training_dir) if isdir(join(training_dir, d))]
     for vid in vids:
+        print (vid)
         vid_dir = join(training_dir, vid)
         bin_file = [join(vid_dir, f) for f in listdir(vid_dir) if isfile(join(vid_dir, f)) and f.endswith(".bin")][0]
         # Extracting the features from training data samples
@@ -49,17 +51,9 @@ def main(training_conf_dir, outdir):
                 continue
 
             label = observation.label
-            whole_histo = observation.feats.feats[0].feat.wholeHisto.histo
-            hues = whole_histo.counts[0].count
-            total_pixels = whole_histo.totalCountedPixels
 
             for color in colors:
-                hue_count = 0
-                for (low, high) in colors[color]:
-                    for idx in range(low, high):
-                        hue_count += hues[idx]
-                hf = hue_count/float(total_pixels)
-                color_hfs[color].append(hf)
+                hf = hue_fraction_analysis.calculate_hue_fraction(observation, colors[color])
 
                 data[color][label][0].append(frame_id)
                 data[color][label][1].append(hf)
@@ -79,9 +73,8 @@ def main(training_conf_dir, outdir):
             min_tick = min(min(data[c][True][0]),min(data[c][False][0]))
             max_tick = max(max(data[c][True][0]),max(data[c][False][0]))
 
-            ax.set_ylim([0,0.4])
-            ax.set_xticks(np.arange(min_tick, max_tick,10))
-            ax.set_xticklabels(np.arange(min_tick, max_tick,10), rotation=90)
+            ax.set_xticks(np.arange(min_tick, max_tick,100))
+            ax.set_xticklabels(np.arange(min_tick, max_tick,100), rotation=90)
             
             fig.savefig(join(outdir, "hf_%s_%s.png"%(vid, c)), bbox_inches="tight")
 if __name__ == "__main__":

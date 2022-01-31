@@ -61,11 +61,18 @@ def main(training_conf_dir, mats_dir):
 
     # List the videos
     vids = [d for d in listdir(training_dir) if isdir(join(training_dir, d))]
-    cv_folds = 3
+    cv_folds = 2
     num_test_vids = int(len(vids)/cv_folds)
     for cv_fold in range(cv_folds):
-        test_vids = [vids[idx] for idx in range(len(vids)) if idx >= cv_fold*num_test_vids and idx < (cv_fold+1)*num_test_vids]
-        train_vids = [vids[idx] for idx in range(len(vids)) if idx < cv_fold*num_test_vids or idx >= (cv_fold+1)*num_test_vids]
+        low = cv_fold*num_test_vids
+        high = (cv_fold+1)*num_test_vids
+        if cv_fold == cv_folds-1: # Last fold
+            if high < len(vids):
+                high = len(vids)
+        test_vids = [vids[idx] for idx in range(len(vids)) if idx >= low and idx < high]
+        train_vids = [vids[idx] for idx in range(len(vids)) if idx < low or idx >= high]
+
+        print (test_vids, train_vids)
 
         # Aggregate sv_matrices in training_set
         
@@ -73,7 +80,7 @@ def main(training_conf_dir, mats_dir):
         positive_mats = []
         negative_mats = []
         for train_vid in train_vids:
-            vid_dir = join(training_dir, train_vid)
+            vid_dir = join(mats_dir, train_vid)
             positive_mats.append(join(vid_dir, "sv_matrix_label_True_BINS_%d_C_%s.txt"%(num_bins, color)))
             negative_mats.append(join(vid_dir, "sv_matrix_label_False_BINS_%d_C_%s.txt"%(num_bins, color)))
 

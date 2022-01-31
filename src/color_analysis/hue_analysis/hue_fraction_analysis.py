@@ -17,6 +17,36 @@ import numpy as np
 import yaml
 from capnp_serial import mapping_capnp
 
+def calculate_hue_fraction(observation, color):
+    feature = observation.feats.feats[0]
+    if feature.type == mapping_capnp.Feature.Type.fullColorHistogram:
+        whole_histo = feature.feat.wholeHisto.histo
+        hues = whole_histo.counts[0].count
+        total_pixels = whole_histo.totalCountedPixels
+
+        hue_count = 0
+        for (low, high) in color:
+            for idx in range(low, high):
+                hue_count += hues[idx]
+        hf = hue_count/float(total_pixels) 
+        return hf
+    elif feature.type == mapping_capnp.Feature.Type.hsvHistogram:
+        hists = feature.feat.hsvHisto.colorHistograms 
+        fg_pixels = feature.feat.hsvHisto.totalCountedPixels
+        if len(hists) > 1:
+            print ("Multi color not supported rn. Exiting.")
+            exit(1)
+        hist = hists[0]
+        
+        total_color_pixels = 0
+        for row_idx in range(len(hist.valueBins)):
+            row = hist.valueBins[row_idx]
+            for col_idx in range(len(row.counts)):
+                col = row.counts[col_idx]
+                total_color_pixels += col
+        hue_fraction = total_color_pixels/fg_pixels
+        return hue_fraction
+
 def main(training_conf_dir):
     with open(join(training_conf_dir, "conf.yaml")) as f:
         conf = yaml.safe_load(f)
@@ -51,36 +81,9 @@ def main(training_conf_dir):
                 continue
             
             feature = observation.feats.feats[0]
-            if feature.type == mapping_capnp.Feature.Type.fullColorHistogram:
-                whole_histo = feature.feat.wholeHisto.histo
-                hues = whole_histo.counts[0].count
-                total_pixels = whole_histo.totalCountedPixels
-
-                for color in colors:
-                    hue_count = 0
-                    for (low, high) in colors[color]:
-                        for idx in range(low, high):
-                            hue_count += hues[idx]
-                    hf = hue_count/float(total_pixels) 
-                    color_hfs[color].append(hf)
-            elif feature.type == mapping_capnp.Feature.Type.hsvHistogram:
-                hists = feature.feat.hsvHisto.colorHistograms 
-                fg_pixels = feature.feat.hsvHisto.totalCountedPixels
-                if len(hists) > 1:
-                    print ("Multi color not supported rn. Exiting.")
-                    exit(1)
-                for color in colors:
-                    hist = hists[0]
-                    
-                    total_color_pixels = 0
-                    for row_idx in range(len(hist.valueBins)):
-                        row = hist.valueBins[row_idx]
-                        for col_idx in range(len(row.counts)):
-                            col = row.counts[col_idx]
-                            total_color_pixels += col
-                    hue_fraction = total_color_pixels/fg_pixels
-                    print (vid, frame_id, hue_fraction)
-                    color_hfs[color].append(hue_fraction)
+            for color in colors:
+                hf = calculate_hue_fraction(observation, colors[color])
+                color_hfs[color].append(hf)
             frame_id += 1
         print (vid, end="\t")
         for color in colors:

@@ -26,14 +26,14 @@ then
     for vid in $(ls $VIDEO_DIR)
     do
         echo $vid
+        mkdir $MATS/$vid
         vid_dir=$VIDEO_DIR/$vid/
         bin_file=$(find $vid_dir -name "*.bin")
         echo $bin_file
-        cmd="python3 extract_sv_matrix_from_bin.py -C $TRAINING_CONF -B $bin_file -O $vid_dir --bins $NUM_BINS --training-split 1.0"
+        cmd="python3 extract_sv_matrix_from_bin.py -C $TRAINING_CONF -B $bin_file -O $MATS/$vid --bins $NUM_BINS --training-split 1.0"
         $cmd &
         pids="$pids $!"
     
-        mkdir $MATS/$vid
     done
 
     for pid in $pids
