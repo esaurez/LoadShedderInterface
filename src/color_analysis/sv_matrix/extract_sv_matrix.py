@@ -42,7 +42,7 @@ def get_sv_counts(frame, colors, num_bins, pf_threshold):
                 color = colors[color_idx]
                 pixel_matches = False
                 for hue_range in color["ranges"]:
-                    if hue >= hue_range["start"] and hue <= hue_range["end"]:
+                    if hue >= hue_range["start"] and hue < hue_range["end"]:
                         pixel_matches = True
                         break
                 if pixel_matches:
@@ -73,7 +73,7 @@ def dump_sv_mat(mat, outfile):
                 f.write("%f "%col)
             f.write("\n")
 
-def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, pf_threshold, training_split):
+def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, training_split):
     # Reading information about the ground-truth of frames from the bin file
     ground_truth_frames = python_server.mapping_features.read_samples(bin_file)
 
@@ -82,6 +82,7 @@ def main(frame_dir, training_conf_file, num_bins, bin_file, outdir, pf_threshold
    
     if training_split == None:
         training_split = training_conf["training_split"]
+    pf_threshold = training_conf["pf_threshold"]
 
     # Creating the ProcessPoolExecutor
     executor = ProcessPoolExecutor(max_workers=32)
@@ -197,9 +198,8 @@ if __name__ == "__main__":
     parser.add_argument("-C", dest="training_conf", help="Path to the training conf yaml")
     parser.add_argument("-O", dest="outdir", help="Path to output directory")
     parser.add_argument("--bins", dest="num_bins", help="Number of bins", type=int, default=16)
-    parser.add_argument("--pf-threshold", dest="pf_threshold", help="Min fraction of pixels (with sat>0 or val>0) for frame to be considered for processing.", type=float, default=0.025)
     parser.add_argument("--training-split", dest="training_split", help="Training split override.", type=float)
 
     args = parser.parse_args()
-    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.pf_threshold, args.training_split)
+    main(args.frame_dir, args.training_conf, args.num_bins, args.bin_file, args.outdir, args.training_split)
 

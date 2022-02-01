@@ -1,0 +1,13 @@
+training_dir: /home/cetus/LoadShedderInterface/data/test/
+training_split: 0.6
+color_names: red
+pf_threshold: 0.005
+num_bins: 8
+
+hue_bins:
+    -  name: red
+       ranges:
+            - start:    0 
+              end:      10
+            - start:    170
+              end:      180

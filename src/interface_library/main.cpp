@@ -37,11 +37,14 @@ void addFullColorHistogram(Feature::Builder feature) {
 int main() {
     std::string mode = "max_cdf";
     CommAgent agent("tcp://localhost:5556");
-    std::cout << agent.getUtilityThreshold(0, mode) << std::endl; 
+    std::unordered_map<unsigned int, float> request;
+    request[0] = 0.0;
+    const auto& response = agent.getUtilityThreshold(request, mode);
+    std::cout <<  response.at(0) << std::endl; 
 
     ::capnp::MallocMessageBuilder message;
     Features::Builder features = message.initRoot<Features>();
     auto feats = features.initFeats(1);
     addFullColorHistogram(feats[0]);
-    std::cout << agent.getUtilityValue(features, mode) << std::endl;
+    std::cout << agent.getUtilityValue(features, 0, mode) << std::endl;
 }

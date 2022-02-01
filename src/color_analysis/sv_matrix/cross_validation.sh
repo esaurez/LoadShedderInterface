@@ -13,7 +13,7 @@ NUM_BINS=$(python3 parse_yaml.py $TRAINING_CONF num_bins)
 
 MATS=$2
 
-PREPROCESS=0
+PREPROCESS=1
 
 if [[ $PREPROCESS = 1 ]]
 then

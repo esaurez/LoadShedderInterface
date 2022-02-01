@@ -33,6 +33,27 @@ def get_obj_frames(uniq):
                 result[obj].append(fidx)
     return result
 
+def get_obj_frame_sel_rates(obj_frames, frames_dropped, num_training_frames):
+    rates = []
+    for obj in obj_frames:
+        obj_in_training_data = False
+        obj_found = False
+        frames = obj_frames[obj]
+
+        num_frames_selected = 0
+        for fidx in frames:
+            if fidx < num_training_frames:
+                obj_in_training_data = True
+
+            if not frames_dropped[fidx]:
+                num_frames_selected += 1
+
+        if not obj_in_training_data:
+            global_obj_id = str(obj)
+            rates.append(num_frames_selected/len(frames))
+
+    return rates
+
 def get_obj_coverage(obj_frames, frames_dropped, num_training_frames):
     obj_covered = {}
     for obj in obj_frames:

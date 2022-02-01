@@ -43,7 +43,7 @@ def main(video_file, bin_file, outdir):
             frame = cv2.putText(frame, "FrameIdx %d : %d objects"%(frame_idx, obj_count), org, font, fontScale, color, thickness, cv2.LINE_AA)
 
             outfile = join(outdir, "frame_%d.jpg"%frame_idx)
-            cv2.imwrite(outfile, frame)
+            cv2.imwrite(outfile, frame, [int(cv2.IMWRITE_JPEG_QUALITY), 10])
             jpgs.append(outfile)
             positive_frame_idxs.append(frame_idx)
         frame_idx += 1

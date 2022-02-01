@@ -25,9 +25,10 @@ class UtilBasedFrameDropCondition:
     def __init__(self, target_ratio):
         self.target_ratio = target_ratio
 
-    def get_frame_drop_bools(self, utils):
-        sorted_utils = sorted(utils)
-        util_threshold = sorted_utils[min(int(len(utils)*self.target_ratio), len(utils)-1)]
+    def get_frame_drop_bools(self, utils, cdf_ratio):
+        num_cdf_frames = int(cdf_ratio*len(utils))
+        sorted_utils = sorted(utils[:num_cdf_frames])
+        util_threshold = sorted_utils[min(int(num_cdf_frames*self.target_ratio), num_cdf_frames-1)]
         is_frame_dropped = [u <= util_threshold for u in utils]        
         return is_frame_dropped
 
@@ -36,7 +37,7 @@ class RandomFrameDropCondition:
         self.target_ratio  = target_ratio
         random.seed(self)
 
-    def get_frame_drop_bools(self, utils):
+    def get_frame_drop_bools(self, utils, cdf_ratio):
         R = []
         for idx in range(len(utils)):
             R.append(random.random())
@@ -47,26 +48,30 @@ class RandomFrameDropCondition:
             is_frame_dropped.append(drop)
         return is_frame_dropped
 
-def compute_drop_obj_metrics(cv_fold, cv_fold_gdf, utils_data, frame_drop_condition, obj_frames, target_drop_rate):
+def compute_drop_obj_metrics(cv_fold, cv_fold_gdf, utils_data, frame_drop_condition, obj_frames, target_drop_rate, cdf_ratio):
     total_frames = 0
     frames_dropped = 0
     total_objs = 0
     objs_detected = 0
+    obj_sel_rates = []
     vids = cv_fold_gdf["vid_name"].unique()
     for vid in vids:
         utils = utils_data[(cv_fold, vid)]
         # Calculate the utility threshold based on the drop rate
-        is_frame_dropped = frame_drop_condition.get_frame_drop_bools(utils)
+        is_frame_dropped = frame_drop_condition.get_frame_drop_bools(utils, cdf_ratio)
         if vid not in obj_frames:
             continue
-        obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames[vid], is_frame_dropped, 0)
-        frames_dropped += len([u for u in is_frame_dropped if u])
-        total_frames += len(utils)
+        num_cdf_frames = int(cdf_ratio*len(utils))
+        obj_covered = object_based_metrics_calc.get_obj_coverage(obj_frames[vid], is_frame_dropped, num_cdf_frames)
+        obj_frame_sel_rates = object_based_metrics_calc.get_obj_frame_sel_rates(obj_frames[vid], is_frame_dropped, num_cdf_frames)
+        frames_dropped += len([idx for idx in range(len(is_frame_dropped)) if is_frame_dropped[idx] and idx >= num_cdf_frames])
+        total_frames += len(utils)-num_cdf_frames
         total_objs += len(obj_covered)
         objs_detected += len([x for x in obj_covered if obj_covered[x]])
+        obj_sel_rates += obj_frame_sel_rates
     obs_frame_drop_rate = frames_dropped/float(total_frames)
     obj_det_rate = objs_detected/float(total_objs)
-    return (obs_frame_drop_rate, obj_det_rate)
+    return (obs_frame_drop_rate, obj_det_rate, np.mean(obj_sel_rates))
 
 def get_obj_frames(training_dir):
     vids = [d for d in listdir(training_dir) if isdir(join(training_dir, d))]
@@ -82,7 +87,7 @@ def get_obj_frames(training_dir):
         obj_frames[vid] = object_based_metrics_calc.get_obj_frames(uniq_obj)
     return obj_frames
 
-def main(training_conf, outdir, frame_utils):
+def main(training_conf, outdir, frame_utils, cdf_ratio):
     conf_file = join(training_conf, "conf.yaml")
     with open(conf_file) as f:
         conf = yaml.safe_load(f)
@@ -99,7 +104,7 @@ def main(training_conf, outdir, frame_utils):
     # Read the frame_utils.csv
     df = pd.read_csv(frame_utils)
     # For each approach, we have 1 dict for target_drop_rates, obj_det_rates, obs_drop_rates
-    data = [[{}, {}, {}], [{},{},{}]]
+    data = [[{}, {}, {}, {}], [{},{},{},{}]]
 
     # First create a map from (cv_fold, vid) --> [utils array]
     grouping = df.groupby(["cv_fold" , "vid_name"])
@@ -136,8 +141,9 @@ def main(training_conf, outdir, frame_utils):
 
                     result = data[approach_idx]
                     
-                    obs_frame_drop_rate, obj_det_rate = compute_drop_obj_metrics(group, fold_df, utils_data, drop_cond, obj_frames, drop_rate)
+                    obs_frame_drop_rate, obj_det_rate, obj_frame_sel_rate = compute_drop_obj_metrics(group, fold_df, utils_data, drop_cond, obj_frames, drop_rate, cdf_ratio)
 
+                    result[3][group].append(obj_frame_sel_rate)
                     result[2][group].append(obs_frame_drop_rate)
                     result[1][group].append(obj_det_rate)
                     result[0][group].append(drop_rate)
@@ -151,18 +157,18 @@ def main(training_conf, outdir, frame_utils):
         for group in result[0]:
             plt.close()
             fig, ax = plt.subplots(figsize=(8,6))
-            ax.scatter(result[0][group], result[1][group], color="blue")
+            ax.scatter(result[0][group], result[3][group], color="blue")
             ax2 = ax.twinx()
             ax2.scatter(result[0][group], result[2][group], color="red")
             ax.set_xlabel("Target drop rate", fontsize=fontsize)
-            ax.set_ylabel("Fraction of target objects detected", fontsize=fontsize)
+            ax.set_ylabel("Object-based QoR", fontsize=fontsize)
             ax2.set_ylabel("Frame drop rate", fontsize=fontsize)
             ax.set_ylim([0,1.1])
             ax2.set_ylim([0,1.1])
             ax.tick_params(axis='both', which='major', labelsize=fontsize)
             ax2.tick_params(axis='both', which='major', labelsize=fontsize)
             #ax.set_title("%s_%d"%(labels[result_idx], group))
-            fig.savefig(join(outdir, "%s_rates_vs_target_drop_rate_group_%d.png"%(labels[result_idx], group)), bbox_inches="tight")
+            fig.savefig(join(outdir, "%s_rates_vs_target_drop_rate_R_%.1f__group_%d.png"%(labels[result_idx], cdf_ratio, group)), bbox_inches="tight")
 
     plt.close()
     fig, ax = plt.subplots(figsize=(8,6))
@@ -173,22 +179,23 @@ def main(training_conf, outdir, frame_utils):
         obj_dets = []
         for group in result[0]:
             obs_drops += result[2][group]
-            obj_dets += result[1][group]
+            obj_dets += result[3][group]
         ax.scatter(obs_drops, obj_dets, label=label)
     fontP = FontProperties()
     fontP.set_size(fontsize)
     ax.legend(prop=fontP)
     ax.set_xlabel("Observed drop rate of frames", fontsize=fontsize)
-    ax.set_ylabel("Fraction of target objects detected", fontsize=fontsize)
+    ax.set_ylabel("Object-based QoR", fontsize=fontsize)
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
-    fig.savefig(join(outdir, "random_comparison.png"), bbox_inches="tight")
+    fig.savefig(join(outdir, "random_comparison_R_%.1f.png"%cdf_ratio), bbox_inches="tight")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-C", dest="training_conf", help="Path to training conf dir", required=True)
     parser.add_argument("-U", dest="frame_utils", help="Path to frame_utils.csv calculated using utility based method", required=True)
     parser.add_argument("-O", dest="outdir", help="Path to output directory", default="/tmp")
+    parser.add_argument("-R", dest="cdf_ratio", help="Ratio of video frames to build CDF. Metrics on the rest", default=0.5, type=float)
     
     args = parser.parse_args()
 
-    main(args.training_conf, args.outdir, args.frame_utils)
+    main(args.training_conf, args.outdir, args.frame_utils, args.cdf_ratio)
