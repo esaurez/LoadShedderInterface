@@ -2,20 +2,14 @@
 
 GRAPHS_LOCATION="/tmp/e2e_graphs/"
 SYNTHETIC_FILE="/mnt/fast-data/thad/videos_csv/synthetic_videos/fourth.csv"
-SYNTHETIC_VIDEO_NAME="new_merged-train-or-red-red_model-24-5000"
-REAL_VIDEOS_DIR="/mnt/fast-data/thad/videos_csv/real_videos"
+REAL_FILE="/mnt/fast-data/thad/videos_csv/interleaved_videos/interleave-5-small-train-or-red-hsv_model-10-2200.csv"
+REAL_VIDEO_NAME="interleave-5-small-train-or-red-hsv_model-10-2200"
+NUM_VIDEOS="5"
 
 mkdir -p ${GRAPHS_LOCATION}
 echo "Generating synthetic graphs"
-python3 compute_e2e_graphs.py -F ${SYNTHETIC_FILE} -V ${SYNTHETIC_VIDEO_NAME} -E
+python3 ./compute_e2e_graphs_from_dataframe.py -F ${SYNTHETIC_FILE} -E
 mv e2e_latency_location.pdf ${GRAPHS_LOCATION}/synthetic_latency.pdf
 
-
-echo "Generating real video graphs"
-for i in $(ls ${REAL_VIDEOS_DIR})
-do
-    VIDEO_NAME="${i%.*}"
-    echo "Processing [ ${VIDEO_NAME} ]"
-    python3 compute_e2e_graphs.py -F ${REAL_VIDEOS_DIR}/${i} -V ${VIDEO_NAME}
-    mv e2e_latency_location.pdf ${GRAPHS_LOCATION}/${VIDEO_NAME}.pdf
-done
+python3 compute_e2e_graphs.py -F ${REAL_FILE} -V ${REAL_VIDEO_NAME} -N ${NUM_VIDEOS} -C
+mv e2e_latency_location.pdf ${GRAPHS_LOCATION}/realistic_latency.pdf
