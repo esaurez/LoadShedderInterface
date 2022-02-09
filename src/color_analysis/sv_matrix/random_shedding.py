@@ -151,7 +151,7 @@ def main(training_conf, outdir, frame_utils, cdf_ratio):
     fontsize=20
 
     # Plotting with target drop rate as the control variable
-    labels = ["Random", "Utility-based"]
+    labels = ["Content-agnostic", "Utility-based"]
     for result_idx in range(len(labels)):
         result = data[result_idx]
         for group in result[0]:

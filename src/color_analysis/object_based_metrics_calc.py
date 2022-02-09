@@ -39,18 +39,19 @@ def get_obj_frame_sel_rates(obj_frames, frames_dropped, num_training_frames):
         obj_in_training_data = False
         obj_found = False
         frames = obj_frames[obj]
+        frames_to_count = [f for f in frames if f != None]
 
         num_frames_selected = 0
         for fidx in frames:
             if fidx < num_training_frames:
                 obj_in_training_data = True
 
-            if not frames_dropped[fidx]:
+            if frames_dropped[fidx] == False:
                 num_frames_selected += 1
 
         if not obj_in_training_data:
             global_obj_id = str(obj)
-            rates.append(num_frames_selected/len(frames))
+            rates.append(num_frames_selected/len(frames_to_count))
 
     return rates
 

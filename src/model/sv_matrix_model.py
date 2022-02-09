@@ -138,6 +138,8 @@ class SVMatrixModel(UtilityModel):
                 return max(color_utils)
             else:
                 return min(color_utils)
+        else:
+            return max(color_utils)
 
     def get_utility_threshold(self, drop_rate, vid_idx):
         if vid_idx >= len(self.util_cdfs):

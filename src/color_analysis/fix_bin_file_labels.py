@@ -29,6 +29,8 @@ def main(bin_file, labels, outdir):
         for frame_idx in range(len(data["data"][vid_idx]["data"])):
             if frame_idx in frame_to_label:
                 data["data"][vid_idx]["data"][frame_idx]["label"] = frame_to_label[frame_idx]
+            else:
+                data["data"][vid_idx]["data"][frame_idx]["label"] = False
 
     out = mapping_capnp.Training.new_message()
     out.from_dict(data)
