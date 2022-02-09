@@ -5,6 +5,7 @@ import matplotlib
 from matplotlib.font_manager import FontProperties
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from os.path import join
 
 breakdown_data = {}
 
@@ -51,7 +52,7 @@ def main(log, outdir):
     ax.tick_params(axis='both', which='major', labelsize=fontsize, bottom=False)
     legend = ax.legend(fancybox=True,shadow=False, prop=fontP)
     ax.set_xlabel("Component Latency [ms]", fontsize=fontsize)
-    fig.savefig("barchart.png", bbox_inches="tight")
+    fig.savefig(join(outdir, "barchart.png"), bbox_inches="tight")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

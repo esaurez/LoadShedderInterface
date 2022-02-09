@@ -16,7 +16,7 @@ do
     
     MATS=$4/$color
     
-    PREPROCESS=0
+    PREPROCESS=1
 
     if [[ $PREPROCESS = 1 ]]
     then
@@ -47,5 +47,10 @@ do
 
 done
 # Step 2: Cross-validation training-testing
-python3 cross_validation_train_test_composite.py -C $1 $2 -M $4 --composite-or
+composite_or_flag=""
+if [ $3 == "OR" ]
+then
+    composite_or_flag="--composite-or"
+fi
+python3 cross_validation_train_test_composite.py -C $1 $2 -M $4 $composite_or_flag
 
