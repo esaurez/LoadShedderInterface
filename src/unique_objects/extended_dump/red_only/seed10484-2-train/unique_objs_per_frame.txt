@@ -1,0 +1,14 @@
+#Ignore first line. Each line has frame idx with variable number of Object IDS.
+67	1
+68	1
+82	2
+272	3
+273	3
+274	3
+279	4
+280	4
+281	4
+723	5
+724	5
+725	5
+794	6
